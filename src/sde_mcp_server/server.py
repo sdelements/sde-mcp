@@ -1356,7 +1356,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 application_was_existing = False  # Track if we used an existing application
                 
                 if not application_id:
-                    # No application ID provided, so we need to find or create an application
+                    # No application ID provided, so we need to find or create a new application
                     application_name = arguments.get("application_name")
                     if application_name:
                         # First, check if an application with this name already exists
@@ -1385,34 +1385,52 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                             # Resolve business unit ID
                             business_unit_id = None
                             
-                            # Priority: business_unit_id > business_unit_name > application_name
+                            # Priority: business_unit_id > business_unit_name > current user's default > first available business unit
                             if "business_unit_id" in arguments:
                                 business_unit_id = arguments["business_unit_id"]
                                 print(f"Using provided business_unit_id: {business_unit_id}", file=sys.stderr)
                             else:
                                 # Try to find business unit by name
                                 business_unit_name_to_find = arguments.get("business_unit_name")
-                                if not business_unit_name_to_find:
-                                    # If no business_unit_name provided, use application_name
-                                    business_unit_name_to_find = application_name
+                                if business_unit_name_to_find:
+                                    try:
+                                        # List all business units and search for one with matching name
+                                        bus_response = api_client.list_business_units({"page_size": 1000})
+                                        business_units = bus_response.get("results", [])
+                                        
+                                        # Search for business unit with matching name (case-insensitive)
+                                        for bu in business_units:
+                                            if bu.get("name", "").strip().lower() == business_unit_name_to_find.strip().lower():
+                                                business_unit_id = bu.get("id")
+                                                print(f"Found business unit '{business_unit_name_to_find}' (ID: {business_unit_id})", file=sys.stderr)
+                                                break
+                                    except Exception as bu_error:
+                                        print(f"Warning: Could not list business units: {bu_error}", file=sys.stderr)
                                 
-                                try:
-                                    # List all business units and search for one with matching name
-                                    bus_response = api_client.list_business_units({"page_size": 1000})
-                                    business_units = bus_response.get("results", [])
-                                    
-                                    # Search for business unit with matching name (case-insensitive)
-                                    for bu in business_units:
-                                        if bu.get("name", "").strip().lower() == business_unit_name_to_find.strip().lower():
-                                            business_unit_id = bu.get("id")
-                                            print(f"Found business unit '{business_unit_name_to_find}' (ID: {business_unit_id})", file=sys.stderr)
-                                            break
-                                    
-                                    if not business_unit_id:
-                                        print(f"Warning: Business unit '{business_unit_name_to_find}' not found, creating application without business unit", file=sys.stderr)
-                                except Exception as bu_error:
-                                    # If listing fails, we'll proceed without business unit
-                                    print(f"Warning: Could not list business units: {bu_error}", file=sys.stderr)
+                                # If no business unit found by name, try to get current user's default business unit
+                                if not business_unit_id:
+                                    try:
+                                        current_user = api_client.get_current_user()
+                                        # Check if user has a default business unit
+                                        user_business_unit = current_user.get("business_unit")
+                                        if user_business_unit:
+                                            business_unit_id = user_business_unit.get("id") if isinstance(user_business_unit, dict) else user_business_unit
+                                            print(f"Using current user's default business unit (ID: {business_unit_id})", file=sys.stderr)
+                                    except Exception as user_error:
+                                        print(f"Warning: Could not get current user info: {user_error}", file=sys.stderr)
+                                
+                                # If still no business unit, use the first available business unit as fallback
+                                if not business_unit_id:
+                                    try:
+                                        bus_response = api_client.list_business_units({"page_size": 1})
+                                        business_units = bus_response.get("results", [])
+                                        if business_units:
+                                            business_unit_id = business_units[0].get("id")
+                                            print(f"Using first available business unit '{business_units[0].get('name')}' (ID: {business_unit_id})", file=sys.stderr)
+                                        else:
+                                            print(f"Warning: No business units found in account, creating application without business unit", file=sys.stderr)
+                                    except Exception as bu_error:
+                                        print(f"Warning: Could not list business units for fallback: {bu_error}", file=sys.stderr)
                             
                             # Create new application with the provided name
                             app_data = {"name": application_name}
