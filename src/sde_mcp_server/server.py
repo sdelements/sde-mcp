@@ -510,9 +510,14 @@ async def list_tools() -> List[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "project_id": {
+                        "type": "integer",
+                        "description": "The ID of the project",
+                        "minimum": 1
+                    },
                     "countermeasure_id": {
                         "type": "integer",
-                        "description": "The ID of the countermeasure to retrieve",
+                        "description": "The ID of the countermeasure to retrieve (task number, e.g., 536 for T536)",
                         "minimum": 1
                     },
                     "risk_relevant": {
@@ -521,7 +526,7 @@ async def list_tools() -> List[Tool]:
                         "default": True
                     }
                 },
-                "required": ["countermeasure_id"]
+                "required": ["project_id", "countermeasure_id"]
             }
         ),
         Tool(
@@ -530,21 +535,26 @@ async def list_tools() -> List[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "project_id": {
+                        "type": "integer",
+                        "description": "The ID of the project",
+                        "minimum": 1
+                    },
                     "countermeasure_id": {
                         "type": "integer",
-                        "description": "The ID of the countermeasure to update",
+                        "description": "The ID of the countermeasure to update (task number, e.g., 536 for T536)",
                         "minimum": 1
                     },
                     "status": {
                         "type": "string",
-                        "description": "New status for the countermeasure"
+                        "description": "New status for the countermeasure (e.g., TS1, TS2)"
                     },
                     "notes": {
                         "type": "string",
-                        "description": "Notes about the countermeasure"
+                        "description": "Notes about the countermeasure (will be converted to status_note for tasks endpoint)"
                     }
                 },
-                "required": ["countermeasure_id"]
+                "required": ["project_id", "countermeasure_id"]
             }
         ),
         
@@ -1175,27 +1185,54 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 # Applications are containers for related projects in SD Elements
                 application_id = arguments.get("application_id")
                 app_result = None
+                application_was_existing = False  # Track if we used an existing application
                 
                 if not application_id:
-                    # No application ID provided, so we need to create a new application
+                    # No application ID provided, so we need to find or create an application
                     application_name = arguments.get("application_name")
                     if application_name:
-                        # Create new application with the provided name
-                        app_data = {"name": application_name}
-                        # Add description if provided
-                        if "application_description" in arguments:
-                            app_data["description"] = arguments["application_description"]
+                        # First, check if an application with this name already exists
+                        existing_app = None
+                        try:
+                            # List all applications and search for one with matching name
+                            apps_response = api_client.list_applications({"page_size": 1000})  # Get a large page size to find existing apps
+                            apps = apps_response.get("results", [])
+                            
+                            # Search for application with matching name (case-insensitive)
+                            for app in apps:
+                                if app.get("name", "").strip().lower() == application_name.strip().lower():
+                                    existing_app = app
+                                    break
+                        except Exception as list_error:
+                            # If listing fails, we'll proceed to create a new application
+                            print(f"Warning: Could not list existing applications: {list_error}", file=sys.stderr)
                         
-                        # Create the application via API
-                        app_result = api_client.create_application(app_data)
-                        application_id = app_result.get("id")
+                        if existing_app:
+                            # Use existing application
+                            application_id = existing_app.get("id")
+                            app_result = existing_app
+                            application_was_existing = True
+                            print(f"Using existing application '{application_name}' (ID: {application_id})", file=sys.stderr)
+                        else:
+                            # Create new application with the provided name
+                            app_data = {"name": application_name}
+                            # Add description if provided
+                            if "application_description" in arguments:
+                                app_data["description"] = arguments["application_description"]
+                            
+                            # Create the application via API
+                            app_result = api_client.create_application(app_data)
+                            application_id = app_result.get("id")
+                            print(f"Created new application '{application_name}' (ID: {application_id})", file=sys.stderr)
                     else:
                         # Neither application_id nor application_name provided
                         result = {
                             "error": "Either application_id or application_name must be provided"
                         }
                         return [TextContent(type="text", text=json.dumps(result, indent=2))]
-                # If application_id was provided, we use the existing application
+                else:
+                    # If application_id was provided, we use the existing application
+                    application_was_existing = True
                 
                 # Step 2: Create project in the application
                 # Projects represent individual software components or services
@@ -1276,7 +1313,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     # Application information
                     "application": {
                         "id": application_id,
-                        "name": app_result.get("name") if app_result else "existing"
+                        "name": app_result.get("name") if app_result else arguments.get("application_name", "unknown"),
+                        "was_existing": application_was_existing
                     },
                     # Project information
                     "project": {
@@ -1351,17 +1389,24 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             result = api_client.list_countermeasures(project_id, params)
             
         elif name == "get_countermeasure":
+            project_id = arguments["project_id"]
             countermeasure_id = arguments["countermeasure_id"]
             params = {}
             # Default risk_relevant to True if not specified
             risk_relevant = arguments.get("risk_relevant", True)
             params["risk_relevant"] = risk_relevant
-            result = api_client.get_countermeasure(countermeasure_id, params)
+            result = api_client.get_countermeasure(project_id, countermeasure_id, params)
             
         elif name == "update_countermeasure":
+            project_id = arguments.pop("project_id")
             countermeasure_id = arguments.pop("countermeasure_id")
-            data = arguments  # Remaining arguments are the update data
-            result = api_client.update_countermeasure(countermeasure_id, data)
+            data = arguments.copy()  # Remaining arguments are the update data
+            
+            # Convert notes to status_note for tasks endpoint
+            if "notes" in data:
+                data["status_note"] = data.pop("notes")
+            
+            result = api_client.update_countermeasure(project_id, countermeasure_id, data)
             
         # User tools
         elif name == "list_users":
