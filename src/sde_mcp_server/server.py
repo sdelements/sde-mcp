@@ -514,6 +514,11 @@ async def list_tools() -> List[Tool]:
                         "type": "integer",
                         "description": "The ID of the countermeasure to retrieve",
                         "minimum": 1
+                    },
+                    "risk_relevant": {
+                        "type": "boolean",
+                        "description": "Filter by risk relevance. If true, only return risk-relevant countermeasures. Defaults to true.",
+                        "default": True
                     }
                 },
                 "required": ["countermeasure_id"]
@@ -1347,7 +1352,11 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             
         elif name == "get_countermeasure":
             countermeasure_id = arguments["countermeasure_id"]
-            result = api_client.get_countermeasure(countermeasure_id)
+            params = {}
+            # Default risk_relevant to True if not specified
+            risk_relevant = arguments.get("risk_relevant", True)
+            params["risk_relevant"] = risk_relevant
+            result = api_client.get_countermeasure(countermeasure_id, params)
             
         elif name == "update_countermeasure":
             countermeasure_id = arguments.pop("countermeasure_id")

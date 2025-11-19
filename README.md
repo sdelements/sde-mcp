@@ -16,6 +16,7 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 * `list_projects` - List all projects with optional filtering
 * `get_project` - Get detailed project information
 * `create_project` - Create a new project
+* `create_project_from_code` - Create application and project in SD Elements based on code context. Returns the project survey structure for AI review. The AI should determine appropriate survey answers from available options and set them using `add_survey_answers_by_text` or `set_project_survey_by_text`, then commit the draft. The survey draft is automatically committed only if answers are already selected (e.g., from application template), ensuring countermeasures are generated.
 * `update_project` - Update project details
 * `delete_project` - Delete a project
 
@@ -481,6 +482,21 @@ sde-mcp-server
 "List all projects and show their status"
 "Delete project 789"
 ```
+
+**Create project from code context:**
+
+```
+"Create an SD Elements project based on the code in this repository"
+"Model the sde_mcp_server codebase in SD Elements"
+```
+
+The `create_project_from_code` tool:
+- Creates or uses an existing application
+- Creates a new project in that application
+- Returns the complete survey structure with all available questions and answers
+- Checks if answers are already selected (e.g., from application template)
+- Automatically commits the survey draft if answers exist, ensuring countermeasures are generated
+- If no answers are selected, the AI should set appropriate answers based on code context using `add_survey_answers_by_text` or `set_project_survey_by_text`, then commit the draft
 
 **Manage applications:**
 
