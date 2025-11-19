@@ -29,7 +29,7 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 ### Countermeasures
 * `list_countermeasures` - List countermeasures for a project
 * `get_countermeasure` - Get countermeasure details
-* `update_countermeasure` - Update countermeasure status
+* `update_countermeasure` - Update countermeasure status or add notes (use `notes` parameter to add explanatory notes)
 
 ### Project Surveys
 * `get_project_survey` - Get the complete survey structure for a project

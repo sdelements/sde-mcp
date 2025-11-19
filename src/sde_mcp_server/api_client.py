@@ -580,21 +580,55 @@ class SDElementsAPIClient:
         """Update an application"""
         return self.patch(f'applications/{app_id}/', data)
     
-    # Countermeasures API
+    # Countermeasures/Tasks API
     def list_countermeasures(self, project_id: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """List countermeasures for a project"""
+        """List countermeasures (tasks) for a project"""
         if params is None:
             params = {}
-        params['project'] = project_id
-        return self.get('countermeasures/', params)
+        # Use tasks endpoint instead of countermeasures endpoint
+        return self.get(f'projects/{project_id}/tasks/', params)
     
-    def get_countermeasure(self, countermeasure_id: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Get countermeasure by ID"""
-        return self.get(f'countermeasures/{countermeasure_id}/', params)
+    def get_task(self, project_id: int, task_id: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Get a task (countermeasure) by project ID and task ID.
+        
+        Args:
+            project_id: The project ID
+            task_id: The task ID (e.g., "T536" or full "31244-T536")
+            params: Optional query parameters
+        """
+        # Construct full task ID if needed (format: project_id-task_id)
+        if not task_id.startswith(str(project_id)):
+            full_task_id = f"{project_id}-{task_id}"
+        else:
+            full_task_id = task_id
+        return self.get(f'projects/{project_id}/tasks/{full_task_id}/', params)
     
-    def update_countermeasure(self, countermeasure_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update a countermeasure"""
-        return self.patch(f'countermeasures/{countermeasure_id}/', data)
+    def update_task(self, project_id: int, task_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update a task (countermeasure) via the tasks endpoint.
+        
+        Args:
+            project_id: The project ID
+            task_id: The task ID (e.g., "T536" or full "31244-T536")
+            data: Update data (can include status, status_note, etc.)
+        """
+        # Construct full task ID if needed (format: project_id-task_id)
+        if not task_id.startswith(str(project_id)):
+            full_task_id = f"{project_id}-{task_id}"
+        else:
+            full_task_id = task_id
+        return self.patch(f'projects/{project_id}/tasks/{full_task_id}/', data)
+    
+    def get_countermeasure(self, project_id: int, countermeasure_id: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get countermeasure by ID (uses tasks endpoint)"""
+        task_id = f"T{countermeasure_id}"
+        return self.get_task(project_id, task_id, params)
+    
+    def update_countermeasure(self, project_id: int, countermeasure_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update a countermeasure (uses tasks endpoint)"""
+        task_id = f"T{countermeasure_id}"
+        return self.update_task(project_id, task_id, data)
     
     # Users API
     def list_users(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
