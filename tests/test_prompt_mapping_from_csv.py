@@ -153,9 +153,11 @@ if HAS_PYTEST:
             "get_project": "Get detailed project information (not for listing countermeasures)",
             "create_project": "Create a new project. If profile not specified, attempts to detect from name/description (e.g., 'mobile project' → Mobile profile). If detection fails, prompts user to select from available profiles.",
             "create_project_from_code": "Create application and project from code repository scan",
-            "update_project": "Update project (name, description, status). Use for 'update', 'change', 'modify', 'rename'. Do NOT use for 'archive', 'delete', 'remove' - use delete_project.",
+            "update_project": "Update project (name, description, status, risk_policy). Use for 'update', 'change', 'modify', 'rename', or 'set risk policy'. Do NOT use for 'archive', 'delete', 'remove' - use delete_project.",
             "delete_project": "Delete/remove/archive a project. Use when user says 'delete', 'remove', 'archive', or wants to permanently remove. Do NOT use update_project for archiving.",
             "list_profiles": "List all available profiles",
+            "list_risk_policies": "List all available risk policies",
+            "get_risk_policy": "Get details of a specific risk policy",
             
             # Application tools
             "list_applications": "List all applications",

@@ -61,8 +61,11 @@ Here are the main tools available in the SD Elements MCP Server:
 - `list_projects` - List all projects
 - `get_project` - Get project details
 - `create_project` - Create a new project
-- `update_project` - Update a project
+- `update_project` - Update a project (name, description, status, risk_policy)
 - `delete_project` - Delete a project
+- `list_profiles` - List all available profiles
+- `list_risk_policies` - List all available risk policies
+- `get_risk_policy` - Get details of a specific risk policy
 
 ### Applications
 - `list_applications` - List all applications

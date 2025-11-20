@@ -8,6 +8,12 @@ Show me information about project ID 456,get_project,projects,Request project de
 What is project 789?,get_project,projects,Query about specific project,medium,generic
 Create a new project called My Project,create_project,projects,Request to create a new project,high,generic
 Update project 123 name to New Name,update_project,projects,Request to update project,medium,generic
+Set the risk policy for project 123 to 5,update_project,projects,Request to set risk policy for project,high,generic
+Update project 456 risk policy to 3,update_project,projects,Request to update risk policy,high,generic
+List all risk policies,list_risk_policies,projects,Request to list risk policies,high,generic
+Show me all available risk policies,list_risk_policies,projects,Query for risk policies,high,generic
+Get risk policy 5,get_risk_policy,projects,Request specific risk policy,medium,generic
+What risk policies are available?,list_risk_policies,projects,Query about available risk policies,medium,generic
 Delete project 456,delete_project,projects,Request to delete a project,high,generic
 Test the connection to SD Elements,test_connection,connection,Test API connectivity,high,generic
 Verify the connection,test_connection,connection,Check connection status,medium,generic

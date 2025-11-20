@@ -210,6 +210,19 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - What profiles are available?
 - What security profiles are available?
 
+### list_risk_policies
+
+- List all risk policies
+- Show me all available risk policies
+- What risk policies are available?
+- Get me a list of risk policies
+
+### get_risk_policy
+
+- Get risk policy 5
+- Show me details for risk policy 3
+- What is risk policy 2?
+
 ### list_projects
 
 - Can you show me all active projects?
@@ -229,6 +242,8 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - Update project 123 name to New Name
 - Update project 123 with new name
 - Update the project status to reflect current sprint progress
+- Set the risk policy for project 123 to 5
+- Update project 456 risk policy to 3
 
 ---
 
