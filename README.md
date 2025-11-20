@@ -16,7 +16,7 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 * `list_projects` - List all projects with optional filtering
 * `get_project` - Get detailed project information
 * `create_project` - Create a new project
-* `create_project_from_code` - Create application and project in SD Elements based on code context. Returns the project survey structure for AI review. The AI should determine appropriate survey answers from available options and set them using `add_survey_answers_by_text` or `set_project_survey_by_text`, then commit the draft. The survey draft is automatically committed only if answers are already selected (e.g., from application template), ensuring countermeasures are generated.
+* `create_project_from_code` - Create application and project in SD Elements. Returns the project survey structure with all available questions and answers. **IMPORTANT:** The AI client must review the survey structure, determine appropriate answers based on the project context, set them using `add_survey_answers_by_text` or `set_project_survey_by_text`, and then commit the survey draft using `commit_survey_draft` to publish the survey and generate countermeasures.
 * `update_project` - Update project details
 * `delete_project` - Delete a project
 
@@ -29,7 +29,8 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 ### Countermeasures
 * `list_countermeasures` - List countermeasures for a project
 * `get_countermeasure` - Get countermeasure details
-* `update_countermeasure` - Update countermeasure status or add notes (use `notes` parameter to add explanatory notes)
+* `update_countermeasure` - Update countermeasure status or details
+* `add_countermeasure_note` - Add a note to an existing countermeasure (convenience tool for adding notes only)
 
 ### Project Surveys
 * `get_project_survey` - Get the complete survey structure for a project
@@ -490,13 +491,23 @@ sde-mcp-server
 "Model the sde_mcp_server codebase in SD Elements"
 ```
 
+**Note:** After creating the project, you must:
+1. Review the survey structure returned by the tool
+2. Set appropriate survey answers using `add_survey_answers_by_text` or `set_project_survey_by_text`
+3. Commit the survey draft using `commit_survey_draft` to generate countermeasures
+
 The `create_project_from_code` tool:
 - Creates or uses an existing application
 - Creates a new project in that application
 - Returns the complete survey structure with all available questions and answers
-- Checks if answers are already selected (e.g., from application template)
-- Automatically commits the survey draft if answers exist, ensuring countermeasures are generated
-- If no answers are selected, the AI should set appropriate answers based on code context using `add_survey_answers_by_text` or `set_project_survey_by_text`, then commit the draft
+
+**IMPORTANT:** This tool does NOT automatically set survey answers or commit the draft. The AI client MUST:
+1. Review the returned survey structure (all available questions and answers)
+2. Use its AI knowledge to determine appropriate survey answers based on the project context
+3. Call `add_survey_answers_by_text` or `set_project_survey_by_text` to set the answers
+4. Call `commit_survey_draft` to publish the survey and generate countermeasures
+
+The survey draft is NOT committed automatically. The AI client must commit it after setting the answers to ensure countermeasures are generated.
 
 **Manage applications:**
 
@@ -586,7 +597,8 @@ The system will:
 "Show open countermeasures for project 123"
 "Get details for countermeasure 456"
 "Update countermeasure 456 status to complete"
-"Add notes to countermeasure 789"
+"Add a note to countermeasure 789"
+"Add notes to countermeasure 789" (uses `add_countermeasure_note` tool)
 ```
 
 ### 6. Advanced Reporting
@@ -763,7 +775,11 @@ Use the Advanced Reports and Cube API to generate custom analytics and insights 
 → AI: "Countermeasure marked as completed"
 
 "Add a note to countermeasure 456: Implemented OAuth 2.0 with JWT tokens"
-→ AI: "Note added successfully"
+→ AI: Uses `add_countermeasure_note` tool to add the note
+
+# Or use the dedicated note tool
+"Add a note to countermeasure 789 explaining the implementation approach"
+→ AI: Uses `add_countermeasure_note` tool to add the note
 ```
 
 ### Reporting Workflow
@@ -851,7 +867,7 @@ This server provides comprehensive access to SD Elements functionality:
 - **Business Units**: List and view organizational structure
 
 ### Security Management
-- **Countermeasures**: List, view, update status, and add notes
+- **Countermeasures**: List, view, update status, and add notes (via `update_countermeasure` or dedicated `add_countermeasure_note` tool)
 - **Project Surveys**: Full survey management with natural language support
   - Set answers using technology names (no ID lookup needed)
   - Add/remove specific answers incrementally

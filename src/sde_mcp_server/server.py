@@ -519,7 +519,7 @@ async def list_tools() -> List[Tool]:
         ),
         Tool(
             name="create_project_from_code",
-            description="Create application and project in SD Elements based on code context. Returns the project survey structure with all available questions and answers. The AI should review the available survey options and use its knowledge to determine appropriate answers based on the project description/context, then call set_project_survey_by_text separately. This tool does NOT use static code analysis - the AI determines answers from the available survey options.",
+            description="Create application and project in SD Elements. Returns the project survey structure with all available questions and answers. IMPORTANT: The AI client must review the survey structure, determine appropriate answers based on the project context, set them using add_survey_answers_by_text or set_project_survey_by_text, and then commit the survey draft using commit_survey_draft to publish the survey and generate countermeasures.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -547,10 +547,6 @@ async def list_tools() -> List[Tool]:
                     "project_description": {
                         "type": "string",
                         "description": "Description of the project (optional)"
-                    },
-                    "code_context": {
-                        "type": "string",
-                        "description": "Text description of the project/technologies (optional). This is provided for AI context only - the AI will determine survey answers from available options, not from static analysis."
                     },
                     "reuse_existing_project": {
                         "type": "boolean",
@@ -672,6 +668,11 @@ async def list_tools() -> List[Tool]:
                     "page_size": {
                         "type": "integer",
                         "description": "Number of results per page (optional)"
+                    },
+                    "risk_relevant": {
+                        "type": "boolean",
+                        "description": "Filter by risk relevance. If true, only return risk-relevant countermeasures. Defaults to true.",
+                        "default": True
                     }
                 },
                 "required": ["project_id"]
@@ -721,6 +722,29 @@ async def list_tools() -> List[Tool]:
                     }
                 },
                 "required": ["project_id", "countermeasure_id"]
+            }
+        ),
+        Tool(
+            name="add_countermeasure_note",
+            description="Add a note to an existing countermeasure. This is a convenience tool specifically for adding notes without updating other fields.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "integer",
+                        "description": "The ID of the project",
+                        "minimum": 1
+                    },
+                    "countermeasure_id": {
+                        "type": "string",
+                        "description": "The task ID of the countermeasure to add a note to (e.g., 'T640')"
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "The note to add to the countermeasure (will be saved as status_note)"
+                    }
+                },
+                "required": ["project_id", "countermeasure_id", "note"]
             }
         ),
         
@@ -1326,27 +1350,19 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             1. Creates or uses an existing application
             2. Creates a new project in the application
             3. Gets the project survey structure with all available questions and answers
-            4. Checks the survey draft state to see if answers are selected
-            5. Commits the survey draft only if answers are selected (to publish and generate countermeasures)
+            4. Returns the survey structure for the AI client to review
             
-            IMPORTANT: This tool does NOT automatically set survey answers.
-            The AI client should:
+            IMPORTANT: This tool does NOT automatically set survey answers or commit the draft.
+            The AI client MUST:
             1. Review the returned survey structure (all available questions and answers)
-            2. Use its AI knowledge along with the optional code_context to determine appropriate survey answers
-            3. Call add_survey_answers_by_text or set_project_survey_by_text to set answers based on code_context
-            4. The survey draft will be automatically committed only if answers are already selected
+            2. Use its AI knowledge to determine appropriate survey answers based on the project context
+            3. Call add_survey_answers_by_text or set_project_survey_by_text to set the answers
+            4. Call commit_survey_draft to publish the survey and generate countermeasures
             
-            This approach allows the AI to make intelligent decisions by reviewing all available
-            survey options rather than relying on hardcoded pattern matching.
-            
-            Note: The survey draft is only committed if answers are already selected (e.g., from
-            application template or previous API calls). If no answers are selected, the AI should
-            set them first using the survey management tools, then commit the draft.
+            The survey draft is NOT committed automatically. The AI client must commit it after
+            setting the answers to ensure countermeasures are generated.
             """
             try:
-                # Optional context provided by user (for AI reference only, not analyzed)
-                code_context = arguments.get("code_context", "")
-                
                 # Step 1: Create or get application
                 # Applications are containers for related projects in SD Elements
                 application_id = arguments.get("application_id")
@@ -1520,7 +1536,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 survey_structure = api_client.get_project_survey(project_id)
                 
                 # Load library answers to get all available answer options
-                # This is needed for extracting answers from code_context
+                # This is needed to provide the AI client with all available survey answers
                 if api_client._library_answers_cache is None:
                     api_client.load_library_answers()
                 
@@ -1536,43 +1552,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                             'section': answer.get('section', '')
                         })
                 
-                # Step 3.5: Automatically set survey answers based on code_context
-                # Extract relevant answer texts from code_context and set them
-                answer_setting_result = None
-                answers_set = False
-                extracted_answer_texts = []
-                
-                if code_context:
-                    try:
-                        # Extract answer texts that match the code_context
-                        extracted_answer_texts = extract_answer_texts_from_context(code_context, available_answers_summary)
-                        
-                        if extracted_answer_texts:
-                            # Use add_survey_answers_by_text to add answers to the draft
-                            # This will add them to the draft without committing
-                            print(f"Adding survey answers based on code_context: {extracted_answer_texts}", file=sys.stderr)
-                            answer_setting_result = api_client.add_survey_answers_by_text(
-                                project_id, 
-                                extracted_answer_texts,
-                                fuzzy_threshold=0.75,
-                                auto_resolve_dependencies=True
-                            )
-                            added_count = answer_setting_result.get('summary', {}).get('added', 0)
-                            if added_count > 0:
-                                answers_set = True
-                                print(f"Successfully added {added_count} answer(s) to survey draft", file=sys.stderr)
-                            if not answer_setting_result.get('success', False):
-                                print(f"Warning: Some answers could not be added: {answer_setting_result}", file=sys.stderr)
-                        else:
-                            print(f"No matching answers found in code_context: '{code_context}'", file=sys.stderr)
-                    except Exception as answer_error:
-                        # If setting answers fails, log it but don't fail the entire operation
-                        answer_setting_result = {
-                            "error": str(answer_error),
-                            "note": "Failed to automatically set answers from code_context, but project was created successfully"
-                        }
-                        print(f"Warning: Could not set answers from code_context: {answer_error}", file=sys.stderr)
-                
                 # Step 4: Check survey draft state to see if answers are selected
                 # Get the survey draft to check what answers are currently selected
                 draft_state = None
@@ -1583,39 +1562,12 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     selected_answers = [a for a in draft_state.get('answers', []) if a.get('selected', False)]
                     selected_answers_count = len(selected_answers)
                 except Exception as draft_error:
-                    # If we can't get draft state, we'll still try to commit
+                    # If we can't get draft state, log the error but continue
                     draft_state = {"error": str(draft_error)}
-                
-                # Step 5: Commit the survey draft to publish it and generate countermeasures
-                # Only commit if there are selected answers, otherwise inform the user
-                commit_result = None
-                commit_success = False
-                commit_skipped = False
-                
-                if selected_answers_count > 0:
-                    # Answers are selected, proceed with commit
-                    try:
-                        commit_result = api_client.commit_survey_draft(project_id)
-                        commit_success = True
-                    except Exception as commit_error:
-                        # If commit fails, log it but don't fail the entire operation
-                        commit_result = {
-                            "error": str(commit_error),
-                            "note": "Survey draft commit failed, but project was created successfully"
-                        }
-                else:
-                    # No answers selected, skip commit and inform user
-                    commit_skipped = True
-                    commit_result = {
-                        "note": "Survey draft not committed because no answers are selected",
-                        "action_required": "Use add_survey_answers_by_text or set_project_survey_by_text to set answers, then call commit_survey_draft"
-                    }
                 
                 # Build comprehensive result object with all workflow details
                 result = {
                     "success": True,
-                    # Project context (optional, provided by user for AI reference)
-                    "project_context": code_context if code_context else None,
                     # Application information
                     "application": {
                         "id": application_id,
@@ -1637,26 +1589,19 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                         "available_answers": available_answers_summary[:100],  # Limit to first 100 for readability
                         "full_survey": survey_structure  # Complete survey structure if needed
                     },
-                    # Survey answer setting (automatic from code_context)
-                    "survey_answers_auto_set": answers_set,
-                    "extracted_answer_texts": extracted_answer_texts if code_context else [],
-                    "answer_setting_result": answer_setting_result,
                     # Survey draft state
                     "survey_draft_state": {
                         "selected_answers_count": selected_answers_count,
                         "has_answers": selected_answers_count > 0,
                         "draft_available": draft_state is not None and "error" not in draft_state
                     },
-                    # Survey draft commit status
-                    "survey_committed": commit_success,
-                    "survey_commit_skipped": commit_skipped,
-                    "survey_commit_result": commit_result,
                     # Next steps for AI client
                     "next_steps": {
-                        "step_1": f"Survey answers {'automatically set from code_context' if answers_set else 'not set automatically'}",
-                        "step_2": f"Survey draft checked: {selected_answers_count} answer(s) currently selected",
-                        "step_3": f"Survey draft has been {'committed successfully' if commit_success else 'skipped (no answers)' if commit_skipped else 'attempted to commit'}",
-                        "step_4": f"Countermeasures will be {'generated' if commit_success else 'generated after answers are set and draft is committed' if commit_skipped else 'generated after manual commit'}"
+                        "step_1": "Review the survey_structure to see all available questions and answers",
+                        "step_2": "Use your AI knowledge to determine appropriate answers based on the project context",
+                        "step_3": "Call add_survey_answers_by_text or set_project_survey_by_text to set the answers",
+                        "step_4": "Call commit_survey_draft to publish the survey and generate countermeasures",
+                        "important": "The survey draft is NOT committed automatically. You must commit it after setting answers."
                     }
                 }
             except Exception as e:
@@ -1697,6 +1642,10 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 params["status"] = arguments["status"]
             if "page_size" in arguments:
                 params["page_size"] = arguments["page_size"]
+            # Default risk_relevant to True if not specified
+            risk_relevant = arguments.get("risk_relevant", True)
+            # Convert boolean to lowercase string for API (API expects "true"/"false" not "True"/"False")
+            params["risk_relevant"] = str(risk_relevant).lower()
             result = api_client.list_countermeasures(project_id, params)
             
         elif name == "get_countermeasure":
@@ -1705,11 +1654,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             # Construct full task ID if only task_id is provided (e.g., "T151" -> "31280-T151")
             if not countermeasure_id.startswith(f"{project_id}-"):
                 countermeasure_id = f"{project_id}-{countermeasure_id}"
-            params = {}
-            # Default risk_relevant to True if not specified
-            risk_relevant = arguments.get("risk_relevant", True)
-            params["risk_relevant"] = risk_relevant
-            result = api_client.get_countermeasure(project_id, countermeasure_id, params)
+            result = api_client.get_countermeasure(project_id, countermeasure_id)
             
         elif name == "update_countermeasure":
             project_id = arguments.pop("project_id")
@@ -1723,6 +1668,17 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             if "notes" in data:
                 data["status_note"] = data.pop("notes")
             
+            result = api_client.update_countermeasure(project_id, countermeasure_id, data)
+            
+        elif name == "add_countermeasure_note":
+            project_id = arguments.pop("project_id")
+            countermeasure_id = arguments.pop("countermeasure_id")
+            note = arguments.pop("note")
+            # Construct full task ID if only task_id is provided (e.g., "T151" -> "31280-T151")
+            if not countermeasure_id.startswith(f"{project_id}-"):
+                countermeasure_id = f"{project_id}-{countermeasure_id}"
+            # Convert 'note' to 'notes' for the API client which will convert it to 'status_note'
+            data = {"notes": note}
             result = api_client.update_countermeasure(project_id, countermeasure_id, data)
             
         # User tools
