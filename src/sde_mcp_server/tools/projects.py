@@ -1,4 +1,5 @@
 """Project-related tools"""
+import asyncio
 import json
 import sys
 from typing import List, Optional
@@ -7,6 +8,10 @@ from fastmcp import Context
 
 from ..server import mcp, api_client, init_api_client, detect_profile_from_context
 from ._base import build_params
+
+# Timeout for elicitation calls (in seconds)
+# If elicitation times out, we'll return an error asking for the parameter
+ELICITATION_TIMEOUT = 30.0
 
 
 @mcp.tool()
@@ -58,13 +63,19 @@ async def create_project(
     
     # Elicitation for name if not provided
     if not name:
-        name_result = await ctx.elicit(
-            "What is the name of the project you want to create?",
-            response_type=str
-        )
-        if name_result.action != "accept":
-            return json.dumps({"error": "Project creation cancelled: project name is required"})
-        name = name_result.data
+        try:
+            name_result = await asyncio.wait_for(
+                ctx.elicit(
+                    "What is the name of the project you want to create?",
+                    response_type=str
+                ),
+                timeout=ELICITATION_TIMEOUT
+            )
+            if name_result.action != "accept":
+                return json.dumps({"error": "Project creation cancelled: project name is required"})
+            name = name_result.data
+        except asyncio.TimeoutError:
+            return json.dumps({"error": "Elicitation timeout: project name is required. Please provide the 'name' parameter."})
     
     # Elicitation for profile_id if not provided
     if not profile_id:
@@ -107,12 +118,18 @@ async def create_project(
                 if default_profile_name:
                     prompt_message = f"Select a profile (default: {default_profile_name}):"
             
-            profile_result = await ctx.elicit(prompt_message, response_type=profile_options)
-            if profile_result.action != "accept":
-                return json.dumps({"error": "Project creation cancelled: profile selection is required"})
-            profile_id = profile_id_map.get(profile_result.data)
-            if not profile_id:
-                return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
+            try:
+                profile_result = await asyncio.wait_for(
+                    ctx.elicit(prompt_message, response_type=profile_options),
+                    timeout=ELICITATION_TIMEOUT
+                )
+                if profile_result.action != "accept":
+                    return json.dumps({"error": "Project creation cancelled: profile selection is required"})
+                profile_id = profile_id_map.get(profile_result.data)
+                if not profile_id:
+                    return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
+            except asyncio.TimeoutError:
+                return json.dumps({"error": "Elicitation timeout: profile selection is required. Please provide the 'profile_id' parameter."})
     
     # Ensure profile_id is set - API requires it
     if not profile_id:
@@ -198,13 +215,19 @@ async def create_project_from_code(
     try:
         # Elicitation 1: Project name
         if not project_name:
-            name_result = await ctx.elicit(
-                "What is the name of the project you want to create?",
-                response_type=str
-            )
-            if name_result.action != "accept":
-                return json.dumps({"error": "Project creation cancelled: project name is required"})
-            project_name = name_result.data
+            try:
+                name_result = await asyncio.wait_for(
+                    ctx.elicit(
+                        "What is the name of the project you want to create?",
+                        response_type=str
+                    ),
+                    timeout=ELICITATION_TIMEOUT
+                )
+                if name_result.action != "accept":
+                    return json.dumps({"error": "Project creation cancelled: project name is required"})
+                project_name = name_result.data
+            except asyncio.TimeoutError:
+                return json.dumps({"error": "Elicitation timeout: project name is required. Please provide the 'project_name' parameter."})
         
         # Elicitation 2: Application selection
         application_id_resolved = application_id
@@ -218,13 +241,19 @@ async def create_project_from_code(
             
             if not apps:
                 # No apps available, must create new
-                app_name_result = await ctx.elicit(
-                    "No existing applications found. What name would you like for the new application?",
-                    response_type=str
-                )
-                if app_name_result.action != "accept":
-                    return json.dumps({"error": "Project creation cancelled: application name is required"})
-                application_name = app_name_result.data
+                try:
+                    app_name_result = await asyncio.wait_for(
+                        ctx.elicit(
+                            "No existing applications found. What name would you like for the new application?",
+                            response_type=str
+                        ),
+                        timeout=ELICITATION_TIMEOUT
+                    )
+                    if app_name_result.action != "accept":
+                        return json.dumps({"error": "Project creation cancelled: application name is required"})
+                    application_name = app_name_result.data
+                except asyncio.TimeoutError:
+                    return json.dumps({"error": "Elicitation timeout: application name is required. Please provide the 'application_name' parameter."})
             else:
                 # Create a list of application options for selection
                 app_options = []
@@ -240,24 +269,36 @@ async def create_project_from_code(
                 # Add option to create new application
                 app_options.append("Create a new application...")
                 
-                app_choice_result = await ctx.elicit(
-                    "Please select an existing application or choose to create a new one:",
-                    response_type=app_options  # List of strings for selection
-                )
-                if app_choice_result.action != "accept":
-                    return json.dumps({"error": "Project creation cancelled: application selection is required"})
-                
-                selected_option = app_choice_result.data
-                
-                if selected_option == "Create a new application...":
-                    # User wants to create new - ask for name
-                    app_name_result = await ctx.elicit(
-                        "What name would you like for the new application?",
-                        response_type=str
+                try:
+                    app_choice_result = await asyncio.wait_for(
+                        ctx.elicit(
+                            "Please select an existing application or choose to create a new one:",
+                            response_type=app_options  # List of strings for selection
+                        ),
+                        timeout=ELICITATION_TIMEOUT
                     )
-                    if app_name_result.action != "accept":
-                        return json.dumps({"error": "Project creation cancelled: application name is required"})
-                    application_name = app_name_result.data
+                    if app_choice_result.action != "accept":
+                        return json.dumps({"error": "Project creation cancelled: application selection is required"})
+                    
+                    selected_option = app_choice_result.data
+                    
+                    if selected_option == "Create a new application...":
+                        # User wants to create new - ask for name
+                        try:
+                            app_name_result = await asyncio.wait_for(
+                                ctx.elicit(
+                                    "What name would you like for the new application?",
+                                    response_type=str
+                                ),
+                                timeout=ELICITATION_TIMEOUT
+                            )
+                            if app_name_result.action != "accept":
+                                return json.dumps({"error": "Project creation cancelled: application name is required"})
+                            application_name = app_name_result.data
+                        except asyncio.TimeoutError:
+                            return json.dumps({"error": "Elicitation timeout: application name is required. Please provide the 'application_name' parameter."})
+                except asyncio.TimeoutError:
+                    return json.dumps({"error": "Elicitation timeout: application selection is required. Please provide the 'application_id' or 'application_name' parameter."})
                 else:
                     # User selected an existing application
                     application_id_resolved = app_id_map.get(selected_option)
@@ -355,17 +396,23 @@ async def create_project_from_code(
                         profile_options.append(profile_name_val)
                         profile_id_map[profile_name_val] = profile_id_val
                     
-                    profile_result = await ctx.elicit(
-                        "Select a profile:",
-                        response_type=profile_options
-                    )
-                    if profile_result.action != "accept":
-                        return json.dumps({"error": "Project creation cancelled: profile selection is required"})
-                    
-                    selected_profile = profile_result.data
-                    profile_id_resolved = profile_id_map.get(selected_profile)
-                    if not profile_id_resolved:
-                        return json.dumps({"error": f"Could not find profile ID for selection: {selected_profile}"})
+                    try:
+                        profile_result = await asyncio.wait_for(
+                            ctx.elicit(
+                                "Select a profile:",
+                                response_type=profile_options
+                            ),
+                            timeout=ELICITATION_TIMEOUT
+                        )
+                        if profile_result.action != "accept":
+                            return json.dumps({"error": "Project creation cancelled: profile selection is required"})
+                        
+                        selected_profile = profile_result.data
+                        profile_id_resolved = profile_id_map.get(selected_profile)
+                        if not profile_id_resolved:
+                            return json.dumps({"error": f"Could not find profile ID for selection: {selected_profile}"})
+                    except asyncio.TimeoutError:
+                        return json.dumps({"error": "Elicitation timeout: profile selection is required. Please provide the 'profile_id' parameter."})
             else:
                 return json.dumps({"error": "No profiles available. Cannot create project without a profile."})
         
