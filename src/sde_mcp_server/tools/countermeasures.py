@@ -45,9 +45,9 @@ async def list_countermeasures(ctx: Context, project_id: int, status: Optional[s
     if api_client is None:
         api_client = init_api_client()
     params = {}
-    if status:
+    if status is not None:
         params["status"] = status
-    if page_size:
+    if page_size is not None:
         params["page_size"] = page_size
     params["risk_relevant"] = str(risk_relevant).lower()
     result = api_client.list_countermeasures(project_id, params)
@@ -132,11 +132,11 @@ async def update_countermeasure(ctx: Context, project_id: int, countermeasure_id
         api_client = init_api_client()
     normalized_id = normalize_countermeasure_id(project_id, countermeasure_id)
     data = {}
-    if status:
+    if status is not None:
         # Resolve status name/slug to ID (API requires status IDs like "TS1", not names like "Complete")
         status_id = resolve_status_to_id(status, api_client)
         data["status"] = status_id
-    if notes:
+    if notes is not None:
         data["status_note"] = notes
     
     if not data:

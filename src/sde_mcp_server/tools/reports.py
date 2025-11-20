@@ -44,11 +44,11 @@ async def update_advanced_report(
         api_client = init_api_client()
     
     data = {}
-    if title:
+    if title is not None:
         data["title"] = title
-    if chart:
+    if chart is not None:
         data["chart"] = chart
-    if query:
+    if query is not None:
         # Parse query if it's a string
         if isinstance(query, str):
             try:
@@ -56,11 +56,11 @@ async def update_advanced_report(
             except json.JSONDecodeError:
                 return json.dumps({"error": "Invalid JSON in query parameter. Query must be valid JSON or a dictionary."}, indent=2)
         data["query"] = query
-    if description:
+    if description is not None:
         data["description"] = description
-    if chart_meta:
+    if chart_meta is not None:
         data["chart_meta"] = chart_meta
-    if type:
+    if type is not None:
         data["type"] = type
     
     if not data:
@@ -77,7 +77,7 @@ async def run_advanced_report(ctx: Context, report_id: int, format: Optional[str
     if api_client is None:
         api_client = init_api_client()
     params = {}
-    if format:
+    if format is not None:
         params["format"] = format
     result = api_client.run_advanced_report(report_id, params)
     return json.dumps(result, indent=2)
@@ -108,9 +108,9 @@ async def create_advanced_report(
     data = {"title": title, "chart": chart, "query": query}
     if description:
         data["description"] = description
-    if chart_meta:
+    if chart_meta is not None:
         data["chart_meta"] = chart_meta
-    if type:
+    if type is not None:
         data["type"] = type
     result = api_client.create_advanced_report(data)
     return json.dumps(result, indent=2)
