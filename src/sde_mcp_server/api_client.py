@@ -748,6 +748,41 @@ class SDElementsAPIClient:
             full_task_id = task_id
         return self.post(f'projects/{project_id}/tasks/{full_task_id}/notes/', {"text": note})
     
+    def get_task_status_choices(self) -> Dict[str, Any]:
+        """
+        Get available task status choices from the task-statuses endpoint.
+        Task statuses are standardized across all projects.
+        
+        Returns:
+            Dictionary with available status choices from /api/v2/task-statuses/
+        """
+        try:
+            # Use the dedicated task-statuses endpoint
+            # Reference: https://docs.sdelements.com/master/api/docs/task-statuses/
+            result = self.get('task-statuses/')
+            
+            # Extract status information
+            statuses = result.get('results', [])
+            if statuses:
+                # Return both the full status objects and a simplified list of names
+                status_names = [status.get('name') for status in statuses if status.get('name')]
+                return {
+                    'status_choices': statuses,
+                    'status_names': status_names,
+                    'note': 'These status choices are standardized across all projects'
+                }
+            
+            return {
+                'error': 'No status choices found',
+                'suggestion': 'Check SD Elements API configuration'
+            }
+            
+        except Exception as e:
+            return {
+                'error': f'Failed to get status choices: {str(e)}',
+                'suggestion': 'Status values are typically: Complete, Not Applicable, Incomplete'
+            }
+    
     # Users API
     def list_users(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """List all users"""
@@ -979,6 +1014,19 @@ class SDElementsAPIClient:
         Args:
             query: A cube query object with schema, dimensions, measures, filters, etc.
                    Format: https://docs.sdelements.com/master/cubeapi/
+                   
+                   Required fields:
+                   - schema: One of: activity, application, countermeasure, integration, library,
+                             project_survey_answers, training, trend_application, trend_projects,
+                             trend_tasks, user (or 'all' - deprecated)
+                   - dimensions: Array of strings like ["Application.name", "Project.id"]
+                   - measures: Array of strings like ["Project.count", "Task.completeCount"]
+                   
+                   Optional fields:
+                   - filters: Array of filter objects with member, operator, values
+                   - order: 2D array like [["Application.name", "asc"], ["Project.id", "desc"]]
+                   - limit: Number to limit results
+                   - time_dimensions: Array for Trend Reports (trend_application, trend_projects, trend_tasks)
         
         Returns:
             Query results from the Cube API
@@ -988,7 +1036,7 @@ class SDElementsAPIClient:
                 "schema": "application",
                 "dimensions": ["Application.name"],
                 "measures": ["Project.count"],
-                "filters": [...],
+                "filters": [{"member": "Application.name", "operator": "contains", "values": ["Portal"]}],
                 "order": [["Application.name", "asc"]],
                 "limit": 20
             }

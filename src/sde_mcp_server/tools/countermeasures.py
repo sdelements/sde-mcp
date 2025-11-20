@@ -45,9 +45,9 @@ async def list_countermeasures(ctx: Context, project_id: int, status: Optional[s
     if api_client is None:
         api_client = init_api_client()
     params = {}
-    if status:
+    if status is not None:
         params["status"] = status
-    if page_size:
+    if page_size is not None:
         params["page_size"] = page_size
     params["risk_relevant"] = str(risk_relevant).lower()
     result = api_client.list_countermeasures(project_id, params)
@@ -66,18 +66,82 @@ async def get_countermeasure(ctx: Context, project_id: int, countermeasure_id: U
     return json.dumps(result, indent=2)
 
 
+def resolve_status_to_id(status: str, api_client) -> str:
+    """
+    Resolve a status name or slug to its ID.
+    
+    The API requires status IDs (e.g., "TS1", "TS2") not names (e.g., "Complete").
+    This function looks up the status ID from the task-statuses endpoint.
+    
+    Args:
+        status: Status name (e.g., "Complete"), slug (e.g., "DONE"), or ID (e.g., "TS1")
+        api_client: The API client instance
+        
+    Returns:
+        Status ID (e.g., "TS1") or the original value if not found
+    """
+    try:
+        # Get all available statuses
+        statuses_response = api_client.get_task_status_choices()
+        status_choices = statuses_response.get('status_choices', [])
+        
+        if not status_choices:
+            # If we can't get statuses, return original (might already be an ID)
+            return status
+        
+        # Normalize input for comparison
+        status_lower = status.strip().lower()
+        
+        # Check if it's already an ID (starts with "TS")
+        if status.upper().startswith('TS'):
+            # Verify it's a valid ID
+            for s in status_choices:
+                if s.get('id', '').upper() == status.upper():
+                    return s['id']
+            return status  # Return as-is if not found
+        
+        # Try to match by name, slug, or meaning
+        for status_obj in status_choices:
+            name = status_obj.get('name', '').lower()
+            slug = status_obj.get('slug', '').lower()
+            meaning = status_obj.get('meaning', '').lower()
+            status_id = status_obj.get('id', '')
+            
+            if (status_lower == name or 
+                status_lower == slug or 
+                status_lower == meaning or
+                status_lower in name or  # Partial match for "complete" -> "Complete"
+                status_lower in slug):
+                return status_id
+        
+        # If no match found, return original (might be a valid ID we don't know about)
+        return status
+        
+    except Exception:
+        # If lookup fails, return original value
+        return status
+
+
 @mcp.tool()
 async def update_countermeasure(ctx: Context, project_id: int, countermeasure_id: Union[int, str], status: Optional[str] = None, notes: Optional[str] = None) -> str:
-    """Update a countermeasure (status or notes). Use when user says 'update status', 'mark as complete', or 'change status'. Do NOT use for 'add note', 'document', or 'note' - use add_countermeasure_note instead. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21")."""
+    """Update a countermeasure (status or notes). Use when user says 'update status', 'mark as complete', or 'change status'. Do NOT use for 'add note', 'document', or 'note' - use add_countermeasure_note instead. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21").
+    
+    Status can be provided as name (e.g., 'Complete', 'Not Applicable'), slug (e.g., 'DONE', 'NA'), or ID (e.g., 'TS1'). The tool will automatically resolve names/slugs to the correct status ID required by the API."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
     normalized_id = normalize_countermeasure_id(project_id, countermeasure_id)
     data = {}
-    if status:
-        data["status"] = status
-    if notes:
+    if status is not None:
+        # Resolve status name/slug to ID (API requires status IDs like "TS1", not names like "Complete")
+        status_id = resolve_status_to_id(status, api_client)
+        data["status"] = status_id
+    if notes is not None:
         data["status_note"] = notes
+    
+    if not data:
+        return json.dumps({"error": "No update data provided. Specify either 'status' or 'notes'."}, indent=2)
+    
     result = api_client.update_countermeasure(project_id, normalized_id, data)
     return json.dumps(result, indent=2)
 
@@ -90,5 +154,15 @@ async def add_countermeasure_note(ctx: Context, project_id: int, countermeasure_
         api_client = init_api_client()
     normalized_id = normalize_countermeasure_id(project_id, countermeasure_id)
     result = api_client.add_task_note(project_id, normalized_id, note)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+async def get_task_status_choices(ctx: Context) -> str:
+    """Get available task status choices. Task statuses are standardized across all projects. Use this to see what status values are valid when updating countermeasures. This helps ensure the correct status value is used (e.g., 'Complete' vs 'Not Applicable')."""
+    global api_client
+    if api_client is None:
+        api_client = init_api_client()
+    result = api_client.get_task_status_choices()
     return json.dumps(result, indent=2)
 

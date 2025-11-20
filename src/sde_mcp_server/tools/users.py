@@ -14,7 +14,7 @@ async def list_users(ctx: Context, page_size: Optional[int] = None, active: Opti
     if api_client is None:
         api_client = init_api_client()
     params = {}
-    if page_size:
+    if page_size is not None:
         params["page_size"] = page_size
     if active is not None:
         params["is_active"] = active

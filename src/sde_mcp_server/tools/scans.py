@@ -45,7 +45,7 @@ async def list_scans(ctx: Context, project_id: Optional[int] = None) -> str:
     if api_client is None:
         api_client = init_api_client()
     params = {}
-    if project_id:
+    if project_id is not None:
         params["project"] = project_id
     result = api_client.list_team_onboarding_scans(params)
     return json.dumps(result, indent=2)
