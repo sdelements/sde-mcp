@@ -71,32 +71,38 @@ async def create_project(
             # Profile detected automatically - use it
             profile_id = detected_profile_id
         else:
-            # No profile detected - try to use default profile first
-            default_profile = None
-            for profile in profiles:
-                if profile.get("default", False):
-                    default_profile = profile.get("id")
-                    break
+            # No profile detected - prompt user to select from available profiles
+            profile_options = []
+            profile_id_map = {}
+            default_profile_id = None
             
-            if default_profile:
-                # Use default profile as fallback
-                profile_id = default_profile
-            else:
-                # No default profile - prompt user to select
-                profile_options = []
-                profile_id_map = {}
-                for profile in profiles:
-                    profile_name = profile.get("name", "Unnamed Profile")
-                    profile_id_val = profile.get("id")
-                    profile_options.append(profile_name)
-                    profile_id_map[profile_name] = profile_id_val
+            for profile in profiles:
+                profile_name_val = profile.get("name", "Unnamed Profile")
+                profile_id_val = profile.get("id")
+                profile_options.append(profile_name_val)
+                profile_id_map[profile_name_val] = profile_id_val
                 
-                profile_result = await ctx.elicit("Select a profile:", response_type=profile_options)
-                if profile_result.action != "accept":
-                    return json.dumps({"error": "Project creation cancelled: profile selection is required"})
-                profile_id = profile_id_map.get(profile_result.data)
-                if not profile_id:
-                    return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
+                # Track default profile to highlight it in the prompt
+                if profile.get("default", False):
+                    default_profile_id = profile_id_val
+            
+            # Always prompt user to select a profile when detection fails
+            prompt_message = "Select a profile:"
+            if default_profile_id:
+                # Find default profile name for the prompt
+                default_profile_name = next(
+                    (name for name, pid in profile_id_map.items() if pid == default_profile_id),
+                    None
+                )
+                if default_profile_name:
+                    prompt_message = f"Select a profile (default: {default_profile_name}):"
+            
+            profile_result = await ctx.elicit(prompt_message, response_type=profile_options)
+            if profile_result.action != "accept":
+                return json.dumps({"error": "Project creation cancelled: profile selection is required"})
+            profile_id = profile_id_map.get(profile_result.data)
+            if not profile_id:
+                return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
     
     # Ensure profile_id is set - API requires it
     if not profile_id:
