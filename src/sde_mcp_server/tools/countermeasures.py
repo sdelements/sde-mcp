@@ -55,13 +55,14 @@ async def list_countermeasures(ctx: Context, project_id: int, status: Optional[s
 
 
 @mcp.tool()
-async def get_countermeasure(ctx: Context, project_id: int, countermeasure_id: Union[int, str]) -> str:
-    """Get details of a specific countermeasure. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21")."""
+async def get_countermeasure(ctx: Context, project_id: int, countermeasure_id: Union[int, str], risk_relevant: bool = True) -> str:
+    """Get details of a specific countermeasure. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21"). Filter by risk relevance - if true, only return risk-relevant countermeasures. Defaults to true."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
     normalized_id = normalize_countermeasure_id(project_id, countermeasure_id)
-    result = api_client.get_countermeasure(project_id, normalized_id)
+    params = {"risk_relevant": risk_relevant}
+    result = api_client.get_countermeasure(project_id, normalized_id, params)
     return json.dumps(result, indent=2)
 
 
