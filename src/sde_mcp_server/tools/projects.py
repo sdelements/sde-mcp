@@ -171,21 +171,46 @@ async def create_project(
 
 @mcp.tool()
 async def update_project(ctx: Context, project_id: int, name: Optional[str] = None, description: Optional[str] = None, status: Optional[str] = None, risk_policy: Optional[int] = None) -> str:
-    """Update an existing project (name, description, status, or risk_policy). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for 'archive', 'delete', or 'remove' - use delete_project instead."""
+    """Update an existing project (name, description, status, or risk_policy). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for 'archive', 'delete', or 'remove' - use delete_project instead.
+    
+    IMPORTANT: risk_policy must be the numeric ID of the risk policy (e.g., 1, 2, 3), not the name. Use list_risk_policies to find the correct ID."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
+    
+    # Validate risk_policy is an integer if provided
+    if risk_policy is not None:
+        if not isinstance(risk_policy, int):
+            return json.dumps({
+                "error": f"risk_policy must be an integer ID, got {type(risk_policy).__name__}: {risk_policy}",
+                "suggestion": "Use list_risk_policies to find the correct risk policy ID (numeric value)"
+            }, indent=2)
+    
     data = {}
-    if name:
+    if name is not None:
         data["name"] = name
-    if description:
+    if description is not None:
         data["description"] = description
-    if status:
+    if status is not None:
         data["status"] = status
     if risk_policy is not None:
         data["risk_policy"] = risk_policy
-    result = api_client.update_project(project_id, data)
-    return json.dumps(result, indent=2)
+    
+    if not data:
+        return json.dumps({"error": "No update data provided. Specify at least one field to update (name, description, status, or risk_policy)."}, indent=2)
+    
+    try:
+        result = api_client.update_project(project_id, data)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        error_msg = str(e)
+        # Check if it's a risk_policy related error
+        if "risk_policy" in error_msg.lower() or "risk policy" in error_msg.lower():
+            return json.dumps({
+                "error": f"Failed to update risk_policy: {error_msg}",
+                "suggestion": "Verify the risk_policy ID exists using list_risk_policies. Risk policy must be a valid numeric ID."
+            }, indent=2)
+        return json.dumps({"error": f"Failed to update project: {error_msg}"}, indent=2)
 
 
 @mcp.tool()
