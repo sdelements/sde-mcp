@@ -184,7 +184,17 @@ class SDElementsAPIClient:
     
     def update_project_survey(self, project_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Update project survey with answers.
+        Update project survey with answers using the draft workflow.
+        
+        This method:
+        1. Gets the current survey draft (works even if survey is already published)
+        2. Updates each answer in the provided list to be selected
+        3. Deselects any answers that are currently selected but not in the provided list
+        4. Optionally commits the draft if survey_complete is True
+        
+        Note: The draft endpoint works for both unpublished and published surveys.
+        For published surveys, the draft reflects the current published state and can be
+        modified and committed again to update the published survey.
         
         Args:
             project_id: The project ID
@@ -196,7 +206,76 @@ class SDElementsAPIClient:
                 "survey_complete": True
             }
         """
-        return self.put(f'projects/{project_id}/survey/', data)
+        # Get the current draft state
+        # This works even if the survey is already published - the draft will reflect
+        # the current published state and can be modified
+        try:
+            draft = self.get(f'projects/{project_id}/survey/draft/')
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f"Failed to retrieve survey draft: {str(e)}",
+                'suggestion': 'The survey draft endpoint may not be available for this project, or the project may not exist.'
+            }
+        
+        current_answers = draft.get('answers', [])
+        
+        # Get the target answer IDs
+        target_answer_ids = set(data.get('answers', []))
+        
+        # Track what we're updating
+        selected_count = 0
+        deselected_count = 0
+        errors = []
+        
+        # Update each answer in the draft
+        for answer in current_answers:
+            answer_id = answer['id']
+            is_currently_selected = answer.get('selected', False)
+            should_be_selected = answer_id in target_answer_ids
+            
+            if should_be_selected and not is_currently_selected:
+                # Select this answer
+                try:
+                    self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', {'selected': True})
+                    selected_count += 1
+                except Exception as e:
+                    errors.append(f"Failed to select {answer_id}: {str(e)}")
+            elif not should_be_selected and is_currently_selected:
+                # Deselect this answer
+                try:
+                    self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', {'selected': False})
+                    deselected_count += 1
+                except Exception as e:
+                    errors.append(f"Failed to deselect {answer_id}: {str(e)}")
+        
+        # Check if any target answers weren't found in the draft
+        found_answer_ids = {answer['id'] for answer in current_answers}
+        missing_answers = target_answer_ids - found_answer_ids
+        
+        result = {
+            'success': True,
+            'selected_count': selected_count,
+            'deselected_count': deselected_count,
+            'target_answers': list(target_answer_ids),
+            'missing_answers': list(missing_answers) if missing_answers else None,
+            'errors': errors if errors else None
+        }
+        
+        # If survey_complete is True, commit the draft
+        if data.get('survey_complete', False):
+            try:
+                commit_result = self.commit_survey_draft(project_id)
+                result['draft_committed'] = True
+                result['commit_result'] = commit_result
+            except Exception as e:
+                result['draft_committed'] = False
+                result['commit_error'] = str(e)
+        else:
+            result['draft_committed'] = False
+            result['note'] = 'Draft updated but not committed. Call commit_survey_draft to apply changes.'
+        
+        return result
     
     def add_answer_to_survey_draft(self, project_id: int, answer_id: str, 
                                    auto_resolve_dependencies: bool = True) -> Dict[str, Any]:
