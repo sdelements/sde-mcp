@@ -519,7 +519,7 @@ async def list_tools() -> List[Tool]:
         ),
         Tool(
             name="create_project_from_code",
-            description="Create application and project in SD Elements. Returns the project survey structure with all available questions and answers. IMPORTANT: The AI client must review the survey structure, determine appropriate answers based on the project context, set them using add_survey_answers_by_text or set_project_survey_by_text, and then commit the survey draft using commit_survey_draft to publish the survey and generate countermeasures.",
+            description="Create application and project in SD Elements. Returns the project survey structure organized by sections and questions, with all available answers including descriptions and help text. This structured format helps the AI better understand which answers belong to which questions. IMPORTANT: The AI client must review the survey structure (organized by sections -> questions -> answers), determine appropriate answers based on the project's tech stack, data types, and business drivers, set them using add_survey_answers_by_text or set_project_survey_by_text, and then commit the survey draft using commit_survey_draft to publish the survey and generate countermeasures.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -1532,25 +1532,12 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     print(f"Created new project '{project_name}' (ID: {project_id})", file=sys.stderr)
                 
                 # Step 3: Get the project survey structure with all available questions and answers
-                # This provides the AI with all possible survey options to choose from
+                # This provides the AI with all possible survey options to choose from, organized by sections and questions
+                # Use structured survey data which groups answers by their questions for better AI understanding
+                structured_survey = api_client.get_structured_survey_data(project_id)
+                
+                # Also get the basic survey structure for backwards compatibility
                 survey_structure = api_client.get_project_survey(project_id)
-                
-                # Load library answers to get all available answer options
-                # This is needed to provide the AI client with all available survey answers
-                if api_client._library_answers_cache is None:
-                    api_client.load_library_answers()
-                
-                # Extract a summary of available answers for easier AI review
-                # Use library answers cache since get_project_survey doesn't return full structure
-                available_answers_summary = []
-                if api_client._library_answers_cache:
-                    for answer in api_client._library_answers_cache:
-                        available_answers_summary.append({
-                            'id': answer.get('id'),
-                            'text': answer.get('text', ''),
-                            'question': answer.get('display_text', ''),
-                            'section': answer.get('section', '')
-                        })
                 
                 # Step 4: Check survey draft state to see if answers are selected
                 # Get the survey draft to check what answers are currently selected
@@ -1581,13 +1568,24 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                         "url": project_result.get("url"),  # Direct link to project in SD Elements
                         "was_existing": project_was_existing
                     },
-                    # Survey structure: All available questions and answers
+                    # Survey structure: All available questions and answers organized by sections
                     "survey_structure": {
-                        "note": "This contains all available survey questions and answers. Review these options and use your AI knowledge to determine which answers are appropriate for this project.",
-                        "total_questions": len([q for s in survey_structure.get('sections', []) for q in s.get('questions', [])]),
-                        "total_answers": len(available_answers_summary),
-                        "available_answers": available_answers_summary[:100],  # Limit to first 100 for readability
-                        "full_survey": survey_structure  # Complete survey structure if needed
+                        "note": "This contains all available survey questions and answers, organized by sections and questions. Each question has multiple answer options with descriptions and help text. Review these options and use your AI knowledge to determine which answers are appropriate for this project based on the tech stack, data types, and business drivers.",
+                        "total_questions": structured_survey.get('total_questions', 0),
+                        "total_answers": structured_survey.get('total_answers', 0),
+                        "sections": structured_survey.get('sections', []),
+                        "usage_guidance": {
+                            "how_to_use": "Review each section and question. For each question, select the answer(s) that best describe your application. Questions may allow multiple answers or single answers depending on question_type.",
+                            "key_fields": {
+                                "section": "Groups related questions together (e.g., 'Technology Stack', 'Data Classification')",
+                                "question": "The actual question being asked (e.g., 'What programming languages are used?')",
+                                "question_type": "Indicates if multiple answers are allowed (e.g., 'multiple_choice', 'single_choice')",
+                                "answers": "List of possible answers for this question, each with text, description, and help_text",
+                                "help_text": "Additional guidance on what the question/answer means or when to select it"
+                            },
+                            "selection_strategy": "For each question, consider: 1) What technologies/frameworks does the project use? 2) What data types does it handle? 3) What are the business drivers and compliance requirements? Select all answers that apply."
+                        },
+                        "legacy_format": survey_structure  # Keep for backwards compatibility
                     },
                     # Survey draft state
                     "survey_draft_state": {
@@ -1597,11 +1595,13 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     },
                     # Next steps for AI client
                     "next_steps": {
-                        "step_1": "Review the survey_structure to see all available questions and answers",
-                        "step_2": "Use your AI knowledge to determine appropriate answers based on the project context",
-                        "step_3": "Call add_survey_answers_by_text or set_project_survey_by_text to set the answers",
-                        "step_4": "Call commit_survey_draft to publish the survey and generate countermeasures",
-                        "important": "The survey draft is NOT committed automatically. You must commit it after setting answers."
+                        "step_1": "Review the survey_structure.sections to understand all available questions organized by category",
+                        "step_2": "For each section, review the questions and their answer options (including descriptions and help_text)",
+                        "step_3": "Based on the project's tech stack, data types, and business drivers, select appropriate answers for each relevant question",
+                        "step_4": "Call add_survey_answers_by_text or set_project_survey_by_text with the answer texts (e.g., ['Java', 'PostgreSQL', 'AWS'])",
+                        "step_5": "Call commit_survey_draft to publish the survey and generate countermeasures",
+                        "important": "The survey draft is NOT committed automatically. You must commit it after setting answers to generate countermeasures.",
+                        "tip": "Use the help_text and description fields to better understand what each question/answer means and when to select it."
                     }
                 }
             except Exception as e:

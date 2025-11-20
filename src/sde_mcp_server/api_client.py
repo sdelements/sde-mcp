@@ -642,6 +642,182 @@ class SDElementsAPIClient:
         print(f"Survey draft committed successfully", file=sys.stderr)
         return result
     
+    def get_structured_survey_data(self, project_id: int) -> Dict[str, Any]:
+        """
+        Get structured survey data organized by sections and questions.
+        This provides better context for AI to understand which answers belong to which questions.
+        
+        Args:
+            project_id: The project ID
+            
+        Returns:
+            Dictionary with survey structure organized by sections -> questions -> answers
+        """
+        # Get the survey draft which contains the full structure
+        try:
+            draft = self.get(f'projects/{project_id}/survey/draft/')
+        except Exception as e:
+            import sys
+            print(f"Error getting survey draft: {e}", file=sys.stderr)
+            return {
+                'sections': [],
+                'total_questions': 0,
+                'total_answers': 0,
+                'error': str(e)
+            }
+        
+        # Load library answers if not already loaded
+        if self._library_answers_cache is None:
+            self.load_library_answers()
+        
+        # Create a lookup map for library answers by ID
+        library_answers_map = {}
+        if self._library_answers_cache:
+            for answer in self._library_answers_cache:
+                answer_id = answer.get('id')
+                if answer_id:
+                    library_answers_map[answer_id] = answer
+        
+        # Structure the data by sections and questions
+        structured_data = {
+            'sections': [],
+            'total_questions': 0,
+            'total_answers': 0
+        }
+        
+        import sys
+        sections = draft.get('sections', [])
+        
+        # If no sections in draft, build structure from answers
+        if not sections:
+            print(f"Building structure from draft answers. Draft keys: {list(draft.keys())[:10]}...", file=sys.stderr)
+            
+            # Group answers by question ID
+            questions_map = {}
+            draft_answers = draft.get('answers', [])
+            print(f"Found {len(draft_answers)} answers in draft", file=sys.stderr)
+            print(f"Library answers cache size: {len(library_answers_map) if library_answers_map else 0}", file=sys.stderr)
+            
+            for answer in draft_answers:
+                question_id = answer.get('question')
+                if not question_id:
+                    continue
+                
+                if question_id not in questions_map:
+                    questions_map[question_id] = {
+                        'id': question_id,
+                        'answers': []
+                    }
+                
+                answer_id = answer.get('id')
+                library_answer = library_answers_map.get(answer_id, {})
+                display_text = library_answer.get('display_text', '')
+                
+                # Extract question text from display_text (format: "Question Text - Answer Text")
+                question_text = display_text
+                if ' - ' in display_text:
+                    question_text = display_text.split(' - ')[0]
+                
+                questions_map[question_id]['text'] = question_text
+                questions_map[question_id]['answers'].append({
+                    'id': answer_id,
+                    'text': library_answer.get('text', ''),
+                    'description': library_answer.get('description', ''),
+                    'display_text': display_text,
+                    'selected': answer.get('selected', False),
+                    'is_active': library_answer.get('is_active', True)
+                })
+            
+            # Organize questions into sections
+            # For now, group by question prefix (CQ = Classification, Q = Regular questions)
+            section_map = {}
+            for q_id, q_data in questions_map.items():
+                # Determine section based on question ID prefix
+                if q_id.startswith('CQ'):
+                    section_key = 'classification'
+                    section_title = 'Classification'
+                elif q_id.startswith('Q'):
+                    section_key = 'general'
+                    section_title = 'General Questions'
+                else:
+                    section_key = 'other'
+                    section_title = 'Other Questions'
+                
+                if section_key not in section_map:
+                    section_map[section_key] = {
+                        'id': section_key,
+                        'title': section_title,
+                        'description': '',
+                        'help_text': '',
+                        'questions': []
+                    }
+                
+                section_map[section_key]['questions'].append(q_data)
+            
+            sections = list(section_map.values())
+        
+        for section in sections:
+            section_data = {
+                'id': section.get('id'),
+                'title': section.get('title', ''),
+                'description': section.get('description', ''),
+                'help_text': section.get('help_text', ''),
+                'questions': []
+            }
+            
+            questions = section.get('questions', [])
+            for question in questions:
+                # Check if question already has answers populated (from our structure building)
+                if 'answers' in question and question['answers']:
+                    # Question structure already built from draft answers
+                    question_data = {
+                        'id': question.get('id'),
+                        'text': question.get('text', ''),
+                        'description': question.get('description', ''),
+                        'help_text': question.get('help_text', ''),
+                        'question_type': question.get('question_type', 'multiple_choice'),  # Default to multiple_choice
+                        'answers': question.get('answers', [])
+                    }
+                    structured_data['total_answers'] += len(question_data['answers'])
+                else:
+                    # Question structure from API (if sections exist in draft)
+                    question_data = {
+                        'id': question.get('id'),
+                        'text': question.get('text', ''),
+                        'description': question.get('description', ''),
+                        'help_text': question.get('help_text', ''),
+                        'question_type': question.get('question_type', ''),
+                        'answers': []
+                    }
+                    
+                    # Get answers for this question
+                    answers = question.get('answers', [])
+                    for answer in answers:
+                        answer_id = answer.get('id')
+                        # Enrich with library answer data if available
+                        library_answer = library_answers_map.get(answer_id, {})
+                        
+                        answer_data = {
+                            'id': answer_id,
+                            'text': answer.get('text', '') or library_answer.get('text', ''),
+                            'description': answer.get('description', '') or library_answer.get('description', ''),
+                            'help_text': answer.get('help_text', ''),
+                            'selected': answer.get('selected', False),
+                            'is_active': answer.get('is_active', True),
+                            'display_text': library_answer.get('display_text', '')
+                        }
+                        question_data['answers'].append(answer_data)
+                        structured_data['total_answers'] += 1
+                
+                if question_data['answers']:
+                    section_data['questions'].append(question_data)
+                    structured_data['total_questions'] += 1
+            
+            if section_data['questions']:
+                structured_data['sections'].append(section_data)
+        
+        return structured_data
+    
     # Applications API
     def list_applications(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """List all applications"""
