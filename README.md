@@ -17,8 +17,11 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 * `get_project` - Get detailed project information
 * `create_project` - Create a new project
 * `create_project_from_code` - Create application and project in SD Elements. Returns the project survey structure with all available questions and answers. **IMPORTANT:** The AI client must review the survey structure, determine appropriate answers based on the project context, set them using `add_survey_answers_by_text` or `set_project_survey_by_text`, and then commit the survey draft using `commit_survey_draft` to publish the survey and generate countermeasures.
-* `update_project` - Update project details
+* `update_project` - Update project details (name, description, status, risk_policy)
 * `delete_project` - Delete a project
+* `list_profiles` - List all available profiles
+* `list_risk_policies` - List all available risk policies
+* `get_risk_policy` - Get details of a specific risk policy
 
 ### Application Management
 * `list_applications` - List all applications

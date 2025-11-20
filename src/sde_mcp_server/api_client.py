@@ -779,6 +779,15 @@ class SDElementsAPIClient:
         """Get profile by ID"""
         return self.get(f'profiles/{profile_id}/', params)
     
+    # Risk Policies API
+    def list_risk_policies(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """List all available risk policies"""
+        return self.get('risk-policies/', params)
+    
+    def get_risk_policy(self, risk_policy_id: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get risk policy by ID"""
+        return self.get(f'risk-policies/{risk_policy_id}/', params)
+    
     # Groups API
     def list_groups(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """List all groups"""

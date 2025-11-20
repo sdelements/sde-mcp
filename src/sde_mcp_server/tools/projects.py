@@ -48,6 +48,28 @@ async def list_profiles(ctx: Context, page_size: Optional[int] = None) -> str:
 
 
 @mcp.tool()
+async def list_risk_policies(ctx: Context, page_size: Optional[int] = None) -> str:
+    """List all available risk policies in SD Elements"""
+    global api_client
+    if api_client is None:
+        api_client = init_api_client()
+    params = {"page_size": page_size} if page_size else {}
+    result = api_client.list_risk_policies(params)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+async def get_risk_policy(ctx: Context, risk_policy_id: int, page_size: Optional[int] = None) -> str:
+    """Get details of a specific risk policy"""
+    global api_client
+    if api_client is None:
+        api_client = init_api_client()
+    params = {"page_size": page_size} if page_size else {}
+    result = api_client.get_risk_policy(risk_policy_id, params)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
 async def create_project(
     ctx: Context,
     application_id: int,
@@ -148,8 +170,8 @@ async def create_project(
 
 
 @mcp.tool()
-async def update_project(ctx: Context, project_id: int, name: Optional[str] = None, description: Optional[str] = None, status: Optional[str] = None) -> str:
-    """Update an existing project (name, description, or status). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for 'archive', 'delete', or 'remove' - use delete_project instead."""
+async def update_project(ctx: Context, project_id: int, name: Optional[str] = None, description: Optional[str] = None, status: Optional[str] = None, risk_policy: Optional[int] = None) -> str:
+    """Update an existing project (name, description, status, or risk_policy). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for 'archive', 'delete', or 'remove' - use delete_project instead."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
@@ -160,6 +182,8 @@ async def update_project(ctx: Context, project_id: int, name: Optional[str] = No
         data["description"] = description
     if status:
         data["status"] = status
+    if risk_policy is not None:
+        data["risk_policy"] = risk_policy
     result = api_client.update_project(project_id, data)
     return json.dumps(result, indent=2)
 
