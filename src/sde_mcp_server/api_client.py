@@ -631,6 +631,22 @@ class SDElementsAPIClient:
             data['status_note'] = data.pop('notes')
         return self.update_task(project_id, countermeasure_id, data)
     
+    def add_task_note(self, project_id: int, task_id: str, note: str) -> Dict[str, Any]:
+        """
+        Add a note to a task (countermeasure) via the notes endpoint.
+        
+        Args:
+            project_id: The project ID
+            task_id: The task ID (e.g., "T536" or full "31244-T536")
+            note: The note text to add
+        """
+        # Construct full task ID if needed (format: project_id-task_id)
+        if not task_id.startswith(str(project_id)):
+            full_task_id = f"{project_id}-{task_id}"
+        else:
+            full_task_id = task_id
+        return self.post(f'projects/{project_id}/tasks/{full_task_id}/notes/', {"text": note})
+    
     # Users API
     def list_users(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """List all users"""

@@ -1674,12 +1674,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             project_id = arguments.pop("project_id")
             countermeasure_id = arguments.pop("countermeasure_id")
             note = arguments.pop("note")
-            # Construct full task ID if only task_id is provided (e.g., "T151" -> "31280-T151")
-            if not countermeasure_id.startswith(f"{project_id}-"):
-                countermeasure_id = f"{project_id}-{countermeasure_id}"
-            # Convert 'note' to 'notes' for the API client which will convert it to 'status_note'
-            data = {"notes": note}
-            result = api_client.update_countermeasure(project_id, countermeasure_id, data)
+            # Use the dedicated notes endpoint: POST /api/v2/projects/{project_id}/tasks/{task_id}/notes/
+            result = api_client.add_task_note(project_id, countermeasure_id, note)
             
         # User tools
         elif name == "list_users":
