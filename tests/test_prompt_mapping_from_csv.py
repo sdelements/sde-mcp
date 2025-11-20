@@ -144,7 +144,8 @@ if HAS_PYTEST:
             
             # Countermeasure tools
             "list_countermeasures": "List all countermeasures for a project (use this to see countermeasures)",
-            "get_countermeasure": "Get details of a specific countermeasure",
+            "get_countermeasure": "Get details of a SPECIFIC countermeasure by its ID. Use when user asks about a particular countermeasure (e.g., 'countermeasure 123', 'T21'). Do NOT use when user asks about available status choices or what statuses are valid - use get_task_status_choices instead.",
+            "get_task_status_choices": "Get the complete list of ALL available task status choices. Use when user asks: 'What task statuses are available?', 'What statuses can I use?', 'Show me valid status values', 'What status values are valid for countermeasures?', or any question about available/valid status options. Returns the list of possible statuses (e.g., 'Complete', 'Not Applicable', 'In Progress'), NOT the status of a specific countermeasure.",
             "update_countermeasure": "Update countermeasure (status or notes). Use for 'update status', 'mark as complete', 'change status'. Do NOT use for 'add note', 'document' - use add_countermeasure_note.",
             "add_countermeasure_note": "Add a note to countermeasure. Use when user says 'add note', 'document', 'note that', 'record that', or wants to add documentation. Use update_countermeasure for status changes.",
             

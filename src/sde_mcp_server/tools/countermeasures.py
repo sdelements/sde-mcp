@@ -56,7 +56,7 @@ async def list_countermeasures(ctx: Context, project_id: int, status: Optional[s
 
 @mcp.tool()
 async def get_countermeasure(ctx: Context, project_id: int, countermeasure_id: Union[int, str], risk_relevant: bool = True) -> str:
-    """Get details of a specific countermeasure. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21"). Filter by risk relevance - if true, only return risk-relevant countermeasures. Defaults to true."""
+    """Get details of a SPECIFIC countermeasure by its ID. Use this when the user asks about a particular countermeasure (e.g., "countermeasure 123", "T21", "countermeasure 456"). Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21"). Filter by risk relevance - if true, only return risk-relevant countermeasures. Defaults to true. Do NOT use this tool when the user asks about available status choices or what statuses are valid - use get_task_status_choices instead."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
@@ -159,7 +159,7 @@ async def add_countermeasure_note(ctx: Context, project_id: int, countermeasure_
 
 @mcp.tool()
 async def get_task_status_choices(ctx: Context) -> str:
-    """Get available task status choices. Task statuses are standardized across all projects. Use this to see what status values are valid when updating countermeasures. This helps ensure the correct status value is used (e.g., 'Complete' vs 'Not Applicable')."""
+    """Get the complete list of ALL available task status choices. Returns all valid status values that can be used when updating countermeasures (e.g., 'Complete', 'Not Applicable', 'In Progress', 'DONE', 'NA'). Use this tool when the user asks: "What task statuses are available?", "What statuses can I use?", "Show me valid status values", "What status values are valid for countermeasures?", or any question about available/valid status options. Task statuses are standardized across all projects. This tool returns the list of possible statuses, NOT the status of a specific countermeasure. For a specific countermeasure's status, use get_countermeasure instead."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
