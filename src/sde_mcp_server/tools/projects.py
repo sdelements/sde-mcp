@@ -71,29 +71,44 @@ async def create_project(
             # Profile detected automatically - use it
             profile_id = detected_profile_id
         else:
-            # No profile detected - prompt user to select
-            profile_options = []
-            profile_id_map = {}
+            # No profile detected - try to use default profile first
+            default_profile = None
             for profile in profiles:
-                profile_name = profile.get("name", "Unnamed Profile")
-                profile_id_val = profile.get("id")
-                profile_options.append(profile_name)
-                profile_id_map[profile_name] = profile_id_val
+                if profile.get("default", False):
+                    default_profile = profile.get("id")
+                    break
             
-            profile_result = await ctx.elicit("Select a profile:", response_type=profile_options)
-            if profile_result.action != "accept":
-                return json.dumps({"error": "Project creation cancelled: profile selection is required"})
-            profile_id = profile_id_map.get(profile_result.data)
-            if not profile_id:
-                return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
+            if default_profile:
+                # Use default profile as fallback
+                profile_id = default_profile
+            else:
+                # No default profile - prompt user to select
+                profile_options = []
+                profile_id_map = {}
+                for profile in profiles:
+                    profile_name = profile.get("name", "Unnamed Profile")
+                    profile_id_val = profile.get("id")
+                    profile_options.append(profile_name)
+                    profile_id_map[profile_name] = profile_id_val
+                
+                profile_result = await ctx.elicit("Select a profile:", response_type=profile_options)
+                if profile_result.action != "accept":
+                    return json.dumps({"error": "Project creation cancelled: profile selection is required"})
+                profile_id = profile_id_map.get(profile_result.data)
+                if not profile_id:
+                    return json.dumps({"error": f"Could not find profile ID for selection: {profile_result.data}"})
+    
+    # Ensure profile_id is set - API requires it
+    if not profile_id:
+        return json.dumps({"error": "Profile is required but could not be determined. Please specify a profile_id."})
     
     data = {"name": name, "application": application_id}
     if description:
         data["description"] = description
     if phase_id:
         data["phase_id"] = phase_id
-    if profile_id:
-        data["profile"] = profile_id
+    # Profile is required, so always include it
+    data["profile"] = profile_id
     
     result = api_client.create_project(data)
     return json.dumps(result, indent=2)

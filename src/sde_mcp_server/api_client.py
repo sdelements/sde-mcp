@@ -113,7 +113,17 @@ class SDElementsAPIClient:
             elif response.status_code >= 400:
                 try:
                     error_data = response.json()
-                    error_msg = error_data.get('detail', f"API error: {response.status_code}")
+                    # Try to get detailed error message from various possible fields
+                    error_msg = (
+                        error_data.get('detail') or 
+                        error_data.get('error') or 
+                        error_data.get('message') or
+                        str(error_data)  # Fallback to string representation of entire error object
+                    )
+                    if not error_msg or error_msg == 'None':
+                        error_msg = f"API error: {response.status_code}\nResponse: {json.dumps(error_data, indent=2)}"
+                    else:
+                        error_msg = f"API error: {response.status_code} - {error_msg}"
                 except:
                     error_msg = f"HTTP {response.status_code}: {response.text}"
                 raise SDElementsAPIError(error_msg)
