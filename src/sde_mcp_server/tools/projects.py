@@ -45,16 +45,26 @@ async def list_profiles(ctx: Context, page_size: Optional[int] = None) -> str:
 @mcp.tool()
 async def create_project(
     ctx: Context,
-    name: str,
     application_id: int,
+    name: Optional[str] = None,
     description: Optional[str] = None,
     phase_id: Optional[int] = None,
     profile_id: Optional[str] = None,
 ) -> str:
-    """Create a new project in SD Elements. If profile is not specified, attempts to detect it from project name/description (e.g., 'mobile project' → Mobile profile). If detection fails, prompts user to select from available profiles."""
+    """Create a new project in SD Elements. If name is not specified, prompts user to provide it. If profile is not specified, attempts to detect it from project name/description (e.g., 'mobile project' → Mobile profile). If detection fails, prompts user to select from available profiles."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
+    
+    # Elicitation for name if not provided
+    if not name:
+        name_result = await ctx.elicit(
+            "What is the name of the project you want to create?",
+            response_type=str
+        )
+        if name_result.action != "accept":
+            return json.dumps({"error": "Project creation cancelled: project name is required"})
+        name = name_result.data
     
     # Elicitation for profile_id if not provided
     if not profile_id:
