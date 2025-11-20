@@ -366,7 +366,7 @@ async def list_tools() -> List[Tool]:
         ),
         Tool(
             name="update_project_survey",
-            description="Update project survey answers. Provide answer IDs (e.g., 'A21', 'A493') to set survey responses.",
+            description="Update project survey answers using answer IDs. This is the preferred method when answer IDs are available from the structured survey (e.g., from create_project_from_code). Provide answer IDs (e.g., ['A21', 'A493', 'A707']) to set survey responses. More accurate than text-based matching.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -519,7 +519,7 @@ async def list_tools() -> List[Tool]:
         ),
         Tool(
             name="create_project_from_code",
-            description="Create application and project in SD Elements. Returns the project survey structure organized by sections and questions, with all available answers including descriptions and help text. This structured format helps the AI better understand which answers belong to which questions. IMPORTANT: The AI client must review the survey structure (organized by sections -> questions -> answers), determine appropriate answers based on the project's tech stack, data types, and business drivers, set them using add_survey_answers_by_text or set_project_survey_by_text, and then commit the survey draft using commit_survey_draft to publish the survey and generate countermeasures.",
+            description="Create application and project in SD Elements. Returns the project survey structure organized by sections and questions, with all available answers including their IDs, descriptions and help text. IMPORTANT: The AI client must review the survey structure (organized by sections -> questions -> answers), determine appropriate answers based on the project's tech stack, data types, and business drivers, extract the answer IDs (e.g., 'A707', 'A5') from the structured survey, use update_project_survey with those answer IDs for maximum accuracy, and then commit the survey draft using commit_survey_draft to publish the survey and generate countermeasures.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -1570,20 +1570,21 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     },
                     # Survey structure: All available questions and answers organized by sections
                     "survey_structure": {
-                        "note": "This contains all available survey questions and answers, organized by sections and questions. Each question has multiple answer options with descriptions and help text. Review these options and use your AI knowledge to determine which answers are appropriate for this project based on the tech stack, data types, and business drivers.",
+                        "note": "This contains all available survey questions and answers, organized by sections and questions. Each answer includes its ID (e.g., 'A707', 'A5'), text, description, and help text. Review these options and use your AI knowledge to determine which answers are appropriate for this project based on the tech stack, data types, and business drivers. IMPORTANT: Use the answer IDs directly when calling update_project_survey for maximum accuracy - avoid text-based matching when answer IDs are available.",
                         "total_questions": structured_survey.get('total_questions', 0),
                         "total_answers": structured_survey.get('total_answers', 0),
                         "sections": structured_survey.get('sections', []),
                         "usage_guidance": {
-                            "how_to_use": "Review each section and question. For each question, select the answer(s) that best describe your application. Questions may allow multiple answers or single answers depending on question_type.",
+                            "how_to_use": "Review each section and question. For each question, select the answer(s) that best describe your application. Extract the answer IDs (e.g., 'A707' for Python, 'A5' for Generic server) from the answers array. Questions may allow multiple answers or single answers depending on question_type.",
                             "key_fields": {
                                 "section": "Groups related questions together (e.g., 'Technology Stack', 'Data Classification')",
                                 "question": "The actual question being asked (e.g., 'What programming languages are used?')",
                                 "question_type": "Indicates if multiple answers are allowed (e.g., 'multiple_choice', 'single_choice')",
-                                "answers": "List of possible answers for this question, each with text, description, and help_text",
+                                "answers": "List of possible answers for this question. Each answer has: 'id' (e.g., 'A707'), 'text' (e.g., 'Python'), 'description', 'help_text', and 'display_text'. Use the 'id' field when calling update_project_survey.",
                                 "help_text": "Additional guidance on what the question/answer means or when to select it"
                             },
-                            "selection_strategy": "For each question, consider: 1) What technologies/frameworks does the project use? 2) What data types does it handle? 3) What are the business drivers and compliance requirements? Select all answers that apply."
+                            "selection_strategy": "For each question, consider: 1) What technologies/frameworks does the project use? 2) What data types does it handle? 3) What are the business drivers and compliance requirements? Select all answers that apply. Collect the answer IDs (the 'id' field) from selected answers.",
+                            "answer_id_usage": "Each answer in the structure includes an 'id' field (e.g., 'A707', 'A5', 'A195'). Collect all relevant answer IDs and use them with update_project_survey(project_id, answers=['A707', 'A5', ...]) for maximum accuracy. This avoids fuzzy matching errors that can occur with text-based tools."
                         },
                         "legacy_format": survey_structure  # Keep for backwards compatibility
                     },
@@ -1598,10 +1599,12 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                         "step_1": "Review the survey_structure.sections to understand all available questions organized by category",
                         "step_2": "For each section, review the questions and their answer options (including descriptions and help_text)",
                         "step_3": "Based on the project's tech stack, data types, and business drivers, select appropriate answers for each relevant question",
-                        "step_4": "Call add_survey_answers_by_text or set_project_survey_by_text with the answer texts (e.g., ['Java', 'PostgreSQL', 'AWS'])",
-                        "step_5": "Call commit_survey_draft to publish the survey and generate countermeasures",
+                        "step_4": "Extract the answer IDs (the 'id' field from each selected answer, e.g., 'A707', 'A5', 'A195') from the survey_structure.sections",
+                        "step_5": "Call update_project_survey(project_id, answers=['A707', 'A5', ...]) with the collected answer IDs for maximum accuracy",
+                        "step_6": "Call commit_survey_draft(project_id) to publish the survey and generate countermeasures",
                         "important": "The survey draft is NOT committed automatically. You must commit it after setting answers to generate countermeasures.",
-                        "tip": "Use the help_text and description fields to better understand what each question/answer means and when to select it."
+                        "accuracy_note": "Using answer IDs directly (from the structured survey) is more accurate than text-based matching. Only use add_survey_answers_by_text or set_project_survey_by_text if you cannot find the answer IDs in the survey structure.",
+                        "tip": "Use the help_text and description fields to better understand what each question/answer means and when to select it. Each answer's 'id' field is what you need for update_project_survey."
                     }
                 }
             except Exception as e:
