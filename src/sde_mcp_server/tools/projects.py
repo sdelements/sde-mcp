@@ -42,7 +42,7 @@ async def list_profiles(ctx: Context, page_size: Optional[int] = None) -> str:
     global api_client
     if api_client is None:
         api_client = init_api_client()
-    params = {"page_size": page_size} if page_size else {}
+    params = {"page_size": page_size} if page_size is not None else {}
     result = api_client.list_profiles(params)
     return json.dumps(result, indent=2)
 
@@ -53,7 +53,7 @@ async def list_risk_policies(ctx: Context, page_size: Optional[int] = None) -> s
     global api_client
     if api_client is None:
         api_client = init_api_client()
-    params = {"page_size": page_size} if page_size else {}
+    params = {"page_size": page_size} if page_size is not None else {}
     result = api_client.list_risk_policies(params)
     return json.dumps(result, indent=2)
 
@@ -64,7 +64,7 @@ async def get_risk_policy(ctx: Context, risk_policy_id: int, page_size: Optional
     global api_client
     if api_client is None:
         api_client = init_api_client()
-    params = {"page_size": page_size} if page_size else {}
+    params = {"page_size": page_size} if page_size is not None else {}
     result = api_client.get_risk_policy(risk_policy_id, params)
     return json.dumps(result, indent=2)
 
