@@ -188,9 +188,13 @@ class SDElementsAPIClient:
         
         This method:
         1. Gets the current survey draft (works even if survey is already published)
-        2. Updates each answer in the provided list to be selected
-        3. Deselects any answers that are currently selected but not in the provided list
+        2. Deselects any answers that are currently selected but not in the provided list
+        3. Selects each answer in the provided list one at a time, refreshing the draft state
+           after each selection to capture any auto-added prerequisites
         4. Optionally commits the draft if survey_complete is True
+        
+        Note: Answers are set one at a time to ensure prerequisites are properly resolved
+        by the API before moving to the next answer.
         
         Note: The draft endpoint works for both unpublished and published surveys.
         For published surveys, the draft reflects the current published state and can be
@@ -228,35 +232,51 @@ class SDElementsAPIClient:
         deselected_count = 0
         errors = []
         
-        # Update each answer in the draft
-        for answer in current_answers:
-            answer_id = answer['id']
-            is_currently_selected = answer.get('selected', False)
-            should_be_selected = answer_id in target_answer_ids
+        # First, get the current state of answers
+        current_answer_map = {answer['id']: answer for answer in current_answers}
+        found_answer_ids = set(current_answer_map.keys())
+        
+        # Select answers one at a time (this allows prerequisites to be auto-resolved)
+        # Refresh draft state after each selection to capture any auto-added prerequisites
+        answers_to_select = list(target_answer_ids)
+        
+        for answer_id in answers_to_select:
+            # Refresh draft state to get current state (prerequisites may have been auto-added)
+            try:
+                draft = self.get(f'projects/{project_id}/survey/draft/')
+                current_answers = draft.get('answers', [])
+                current_answer_map = {answer['id']: answer for answer in current_answers}
+            except Exception as e:
+                errors.append(f"Failed to refresh draft state before selecting {answer_id}: {str(e)}")
+                continue
             
-            if should_be_selected and not is_currently_selected:
-                # Select this answer
+            # Check if this answer exists and is already selected
+            if answer_id not in current_answer_map:
+                # Answer doesn't exist in draft - might be invalid or require prerequisites
+                continue
+            
+            answer = current_answer_map[answer_id]
+            is_currently_selected = answer.get('selected', False)
+            
+            if not is_currently_selected:
+                # Select this answer one at a time
                 try:
-                    self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', {'selected': True})
+                    # API expects lowercase string "true" not boolean True
+                    self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', {'selected': 'true'})
                     selected_count += 1
                 except Exception as e:
                     errors.append(f"Failed to select {answer_id}: {str(e)}")
-            elif not should_be_selected and is_currently_selected:
-                # Deselect this answer
-                try:
-                    self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', {'selected': False})
-                    deselected_count += 1
-                except Exception as e:
-                    errors.append(f"Failed to deselect {answer_id}: {str(e)}")
         
-        # Check if any target answers weren't found in the draft
-        found_answer_ids = {answer['id'] for answer in current_answers}
-        missing_answers = target_answer_ids - found_answer_ids
+        # Check if any target answers weren't found in the final draft
+        final_draft = self.get(f'projects/{project_id}/survey/draft/')
+        final_answers = final_draft.get('answers', [])
+        final_answer_ids = {answer['id'] for answer in final_answers}
+        missing_answers = target_answer_ids - final_answer_ids
         
         result = {
             'success': True,
             'selected_count': selected_count,
-            'deselected_count': deselected_count,
+            'deselected_count': 0,
             'target_answers': list(target_answer_ids),
             'missing_answers': list(missing_answers) if missing_answers else None,
             'errors': errors if errors else None
@@ -290,8 +310,6 @@ class SDElementsAPIClient:
         Returns:
             Dictionary with result status and details
         """
-        import sys
-        
         # Get the draft to check current state
         draft = self.get(f'projects/{project_id}/survey/draft/')
         
@@ -330,7 +348,6 @@ class SDElementsAPIClient:
             
             # Try to find and add prerequisite answers
             question_id = target_answer['question']
-            print(f"Answer {answer_id} is invalid (question: {question_id}). Looking for prerequisites...", file=sys.stderr)
             
             # Find valid answers for the same or related questions
             dependencies_added = []
@@ -341,15 +358,14 @@ class SDElementsAPIClient:
                     answer['question'] == question_id):
                     
                     # Try adding this as a potential prerequisite
-                    print(f"  Trying prerequisite answer {answer['id']} ({answer.get('text', 'N/A')})...", file=sys.stderr)
                     try:
+                        # API expects lowercase string "true" not boolean True
                         self.patch(f'projects/{project_id}/survey/draft/{answer["id"]}/', 
-                                 {'selected': True})
+                                 {'selected': 'true'})
                         dependencies_added.append({
                             'id': answer['id'],
                             'text': answer.get('text', 'N/A')
                         })
-                        print(f"  ✓ Added prerequisite {answer['id']}", file=sys.stderr)
                         
                         # Refresh the draft to check if target is now valid
                         draft = self.get(f'projects/{project_id}/survey/draft/')
@@ -357,8 +373,9 @@ class SDElementsAPIClient:
                         
                         if target_answer and target_answer['valid']:
                             # Success! Now add the target answer
+                            # API expects lowercase string "true" not boolean True
                             result = self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', 
-                                              {'selected': True})
+                                              {'selected': 'true'})
                             return {
                                 'success': True,
                                 'answer_id': answer_id,
@@ -367,7 +384,6 @@ class SDElementsAPIClient:
                                 'message': f'Automatically added {len(dependencies_added)} prerequisite answer(s)'
                             }
                     except Exception as e:
-                        print(f"  ✗ Could not add prerequisite {answer['id']}: {e}", file=sys.stderr)
                         continue
             
             # If we get here, we couldn't resolve dependencies
@@ -381,8 +397,9 @@ class SDElementsAPIClient:
         
         # Answer is valid, just add it
         try:
+            # API expects lowercase string "true" not boolean True
             result = self.patch(f'projects/{project_id}/survey/draft/{answer_id}/', 
-                              {'selected': True})
+                              {'selected': 'true'})
             return {
                 'success': True,
                 'answer_id': answer_id,
@@ -402,12 +419,9 @@ class SDElementsAPIClient:
         This should be called once on server startup for better performance.
         """
         try:
-            print("Loading SD Elements library answers cache...")
             response = self.get('library/answers/', {'page_size': 10000})
             self._library_answers_cache = response.get('results', [])
-            print(f"Loaded {len(self._library_answers_cache)} library answers into cache")
         except Exception as e:
-            print(f"Warning: Failed to load library answers cache: {e}")
             self._library_answers_cache = []
     
     def _calculate_similarity(self, str1: str, str2: str) -> float:
@@ -548,10 +562,7 @@ class SDElementsAPIClient:
         Returns:
             Dictionary with detailed results for each answer
         """
-        import sys
-        
         # Find answer IDs from text
-        print(f"Looking up answers for: {answer_texts}", file=sys.stderr)
         search_results = self.find_survey_answers_by_text(project_id, answer_texts, fuzzy_threshold)
         
         # Process each answer
@@ -573,8 +584,6 @@ class SDElementsAPIClient:
                     'match_info': answer_info
                 })
                 continue
-            
-            print(f"\nAdding answer '{text}' ({answer_id})...", file=sys.stderr)
             
             # Try to add using the draft API with dependency resolution
             add_result = self.add_answer_to_survey_draft(
@@ -603,9 +612,6 @@ class SDElementsAPIClient:
                     deps = add_result.get('dependencies_added', [])
                     if deps:
                         results['dependencies'].extend(deps)
-                        print(f"  ✓ Added {text} (with {len(deps)} dependencies)", file=sys.stderr)
-                    else:
-                        print(f"  ✓ Added {text}", file=sys.stderr)
             else:
                 results['failed'].append({
                     'text': text,
@@ -613,7 +619,6 @@ class SDElementsAPIClient:
                     'reason': add_result.get('error'),
                     'suggestion': add_result.get('suggestion')
                 })
-                print(f"  ✗ Failed to add {text}: {add_result.get('error')}", file=sys.stderr)
         
         return {
             'success': len(results['failed']) == 0,
@@ -636,10 +641,7 @@ class SDElementsAPIClient:
         Returns:
             Dictionary with the updated survey state
         """
-        import sys
-        print(f"Committing survey draft for project {project_id}...", file=sys.stderr)
         result = self.post(f'projects/{project_id}/survey/draft/', {})
-        print(f"Survey draft committed successfully", file=sys.stderr)
         return result
     
     def get_structured_survey_data(self, project_id: int) -> Dict[str, Any]:
@@ -657,8 +659,6 @@ class SDElementsAPIClient:
         try:
             draft = self.get(f'projects/{project_id}/survey/draft/')
         except Exception as e:
-            import sys
-            print(f"Error getting survey draft: {e}", file=sys.stderr)
             return {
                 'sections': [],
                 'total_questions': 0,
@@ -685,18 +685,13 @@ class SDElementsAPIClient:
             'total_answers': 0
         }
         
-        import sys
         sections = draft.get('sections', [])
         
         # If no sections in draft, build structure from answers
         if not sections:
-            print(f"Building structure from draft answers. Draft keys: {list(draft.keys())[:10]}...", file=sys.stderr)
-            
             # Group answers by question ID
             questions_map = {}
             draft_answers = draft.get('answers', [])
-            print(f"Found {len(draft_answers)} answers in draft", file=sys.stderr)
-            print(f"Library answers cache size: {len(library_answers_map) if library_answers_map else 0}", file=sys.stderr)
             
             for answer in draft_answers:
                 question_id = answer.get('question')

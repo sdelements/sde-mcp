@@ -1387,14 +1387,13 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                                     break
                         except Exception as list_error:
                             # If listing fails, we'll proceed to create a new application
-                            print(f"Warning: Could not list existing applications: {list_error}", file=sys.stderr)
+                            pass
                         
                         if existing_app:
                             # Use existing application
                             application_id = existing_app.get("id")
                             app_result = existing_app
                             application_was_existing = True
-                            print(f"Using existing application '{application_name}' (ID: {application_id})", file=sys.stderr)
                         else:
                             # Resolve business unit ID
                             business_unit_id = None
@@ -1402,7 +1401,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                             # Priority: business_unit_id > business_unit_name > current user's default > first available business unit
                             if "business_unit_id" in arguments:
                                 business_unit_id = arguments["business_unit_id"]
-                                print(f"Using provided business_unit_id: {business_unit_id}", file=sys.stderr)
                             else:
                                 # Try to find business unit by name
                                 business_unit_name_to_find = arguments.get("business_unit_name")
@@ -1416,10 +1414,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                                         for bu in business_units:
                                             if bu.get("name", "").strip().lower() == business_unit_name_to_find.strip().lower():
                                                 business_unit_id = bu.get("id")
-                                                print(f"Found business unit '{business_unit_name_to_find}' (ID: {business_unit_id})", file=sys.stderr)
                                                 break
                                     except Exception as bu_error:
-                                        print(f"Warning: Could not list business units: {bu_error}", file=sys.stderr)
+                                        pass
                                 
                                 # If no business unit found by name, try to get current user's default business unit
                                 if not business_unit_id:
@@ -1429,9 +1426,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                                         user_business_unit = current_user.get("business_unit")
                                         if user_business_unit:
                                             business_unit_id = user_business_unit.get("id") if isinstance(user_business_unit, dict) else user_business_unit
-                                            print(f"Using current user's default business unit (ID: {business_unit_id})", file=sys.stderr)
                                     except Exception as user_error:
-                                        print(f"Warning: Could not get current user info: {user_error}", file=sys.stderr)
+                                        pass
                                 
                                 # If still no business unit, use the first available business unit as fallback
                                 if not business_unit_id:
@@ -1441,11 +1437,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                                         business_units = bus_response.get("results", [])
                                         if business_units:
                                             business_unit_id = business_units[0].get("id")
-                                            print(f"Using first available business unit '{business_units[0].get('name')}' (ID: {business_unit_id})", file=sys.stderr)
-                                        else:
-                                            print(f"Error: No business units found in account", file=sys.stderr)
                                     except Exception as bu_error:
-                                        print(f"Error: Could not list business units for fallback: {bu_error}", file=sys.stderr)
+                                        pass
                             
                             # Validate that we have a business unit before creating the application
                             if not business_unit_id:
@@ -1465,7 +1458,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                             # Create the application via API
                             app_result = api_client.create_application(app_data)
                             application_id = app_result.get("id")
-                            print(f"Created new application '{application_name}' (ID: {application_id})", file=sys.stderr)
                     else:
                         # Neither application_id nor application_name provided
                         result = {
@@ -1498,7 +1490,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                             existing_project = proj
                             break
                 except Exception as list_error:
-                    print(f"Warning: Could not list existing projects: {list_error}", file=sys.stderr)
+                    pass
                 
                 if existing_project:
                     if reuse_existing:
@@ -1506,7 +1498,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                         project_result = existing_project
                         project_id = project_result.get("id")
                         project_was_existing = True
-                        print(f"Using existing project '{project_name}' (ID: {project_id})", file=sys.stderr)
                     else:
                         # Return an error suggesting a different name or to use reuse_existing_project
                         result = {
@@ -1529,7 +1520,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     # Create the project via API
                     project_result = api_client.create_project(project_data)
                     project_id = project_result.get("id")
-                    print(f"Created new project '{project_name}' (ID: {project_id})", file=sys.stderr)
                 
                 # Step 3: Get the project survey structure with all available questions and answers
                 # This provides the AI with all possible survey options to choose from, organized by sections and questions
@@ -1603,7 +1593,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                         "step_5": "Call update_project_survey(project_id, answers=['A707', 'A5', ...]) with the collected answer IDs for maximum accuracy",
                         "step_6": "Call commit_survey_draft(project_id) to publish the survey and generate countermeasures",
                         "important": "The survey draft is NOT committed automatically. You must commit it after setting answers to generate countermeasures.",
-                        "accuracy_note": "Using answer IDs directly (from the structured survey) is more accurate than text-based matching. Only use add_survey_answers_by_text or set_project_survey_by_text if you cannot find the answer IDs in the survey structure.",
+                        "warning": "DO NOT use add_survey_answers_by_text or set_project_survey_by_text. These tools use fuzzy text matching which causes errors (e.g., 'JavaScript' matched to 'Java', wrong answers selected). Always use update_project_survey with answer IDs extracted from the survey_structure.",
+                        "accuracy_note": "Using answer IDs directly (from the structured survey) is more accurate than text-based matching. Text-based tools have caused errors: 'JavaScript'→'Java', wrong boolean answers, mobile app answers selected for web apps. Always extract answer IDs from survey_structure and use update_project_survey.",
                         "tip": "Use the help_text and description fields to better understand what each question/answer means and when to select it. Each answer's 'id' field is what you need for update_project_survey."
                     }
                 }
@@ -2013,14 +2004,9 @@ async def main():
     global api_client
     try:
         api_client = init_api_client()
-        print("SD Elements MCP Server starting...", file=sys.stderr)
-        print(f"Host: {os.getenv('SDE_HOST')}", file=sys.stderr)
-        print("Configuration validated successfully", file=sys.stderr)
         
         # Load library answers cache on startup
-        print("Loading library answers cache...", file=sys.stderr)
         api_client.load_library_answers()
-        print("Library answers cache loaded successfully", file=sys.stderr)
     except Exception as e:
         print(f"Configuration error: {e}", file=sys.stderr)
         print("Please set SDE_HOST and SDE_API_KEY environment variables", file=sys.stderr)
