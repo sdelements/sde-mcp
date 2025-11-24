@@ -126,7 +126,9 @@ def resolve_status_to_id(status: str, api_client) -> str:
 async def update_countermeasure(ctx: Context, project_id: int, countermeasure_id: Union[int, str], status: Optional[str] = None, notes: Optional[str] = None) -> str:
     """Update a countermeasure (status or notes). Use when user says 'update status', 'mark as complete', or 'change status'. Do NOT use for 'add note', 'document', or 'note' - use add_countermeasure_note instead. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21").
     
-    Status can be provided as name (e.g., 'Complete', 'Not Applicable'), slug (e.g., 'DONE', 'NA'), or ID (e.g., 'TS1'). The tool will automatically resolve names/slugs to the correct status ID required by the API."""
+    Status can be provided as name (e.g., 'Complete', 'Not Applicable'), slug (e.g., 'DONE', 'NA'), or ID (e.g., 'TS1'). The tool will automatically resolve names/slugs to the correct status ID required by the API.
+    
+    IMPORTANT: The 'notes' parameter sets a status_note, which is only saved when the status actually changes. If the countermeasure already has the target status, use add_countermeasure_note instead to add a note, or change the status to a different value first, then back to the target status to trigger saving the status_note."""
     global api_client
     if api_client is None:
         api_client = init_api_client()
@@ -148,7 +150,9 @@ async def update_countermeasure(ctx: Context, project_id: int, countermeasure_id
 
 @mcp.tool()
 async def add_countermeasure_note(ctx: Context, project_id: int, countermeasure_id: Union[int, str], note: str) -> str:
-    """Add a note to a countermeasure. Use when user says 'add note', 'document', 'note that', 'record that', or wants to add documentation. Use update_countermeasure if user wants to change status. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21")."""
+    """Add a note to a countermeasure. Use when user says 'add note', 'document', 'note that', 'record that', or wants to add documentation. Use update_countermeasure if user wants to change status. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21").
+    
+    IMPORTANT: Use this tool when adding notes to countermeasures that already have the target status. The update_countermeasure tool's 'notes' parameter only saves status_note when the status actually changes. For countermeasures that already have the desired status, always use add_countermeasure_note to ensure the note is saved."""
     global api_client
     if api_client is None:
         api_client = init_api_client()

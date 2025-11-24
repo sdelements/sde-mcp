@@ -35,6 +35,11 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 * `update_countermeasure` - Update countermeasure status or details
 * `add_countermeasure_note` - Add a note to an existing countermeasure (convenience tool for adding notes only)
 
+**Important Note on Adding Notes:**
+- `update_countermeasure` with the `notes` parameter sets a `status_note`, which is only saved when the status actually changes
+- If a countermeasure already has the target status, use `add_countermeasure_note` instead to ensure the note is saved
+- Alternatively, you can change the status to a different value first, then back to the target status to trigger saving the `status_note`
+
 ### Project Surveys
 * `get_project_survey` - Get the complete survey structure for a project
 * `get_survey_answers_for_project` - Get the survey answers that are currently selected/assigned for a project in readable format
@@ -465,6 +470,11 @@ The system will:
 "Add notes to countermeasure 789" (uses `add_countermeasure_note` tool)
 ```
 
+**Important:** When adding notes to countermeasures:
+- Use `add_countermeasure_note` when the countermeasure already has the target status
+- `update_countermeasure` with `notes` only saves the note when the status actually changes
+- If you need to add a note without changing status, always use `add_countermeasure_note`
+
 ### 6. Advanced Reporting
 
 **Work with reports:**
@@ -639,11 +649,15 @@ Use the Advanced Reports and Cube API to generate custom analytics and insights 
 → AI: "Countermeasure marked as completed"
 
 "Add a note to countermeasure 456: Implemented OAuth 2.0 with JWT tokens"
-→ AI: Uses `add_countermeasure_note` tool to add the note
+→ AI: Uses `add_countermeasure_note` tool to add the note (ensures note is saved even if status unchanged)
 
 # Or use the dedicated note tool
 "Add a note to countermeasure 789 explaining the implementation approach"
 → AI: Uses `add_countermeasure_note` tool to add the note
+
+# Important: If countermeasure already has target status, use add_countermeasure_note
+"Countermeasure 123 is already marked as 'Not Applicable', add a note explaining why"
+→ AI: Uses `add_countermeasure_note` to ensure note is saved (update_countermeasure notes only save on status change)
 ```
 
 ### Reporting Workflow
@@ -731,7 +745,10 @@ This server provides comprehensive access to SD Elements functionality:
 - **Business Units**: List and view organizational structure
 
 ### Security Management
-- **Countermeasures**: List, view, update status, and add notes (via `update_countermeasure` or dedicated `add_countermeasure_note` tool)
+- **Countermeasures**: List, view, update status, and add notes
+  - Use `update_countermeasure` to change status (notes are saved as status_note when status changes)
+  - Use `add_countermeasure_note` to add notes to countermeasures that already have the target status
+  - Note: `update_countermeasure`'s `notes` parameter only saves when status actually changes
 - **Project Surveys**: Full survey management with natural language support
   - Set answers using technology names (no ID lookup needed)
   - Add/remove specific answers incrementally
