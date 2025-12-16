@@ -1,0 +1,50 @@
+{
+  "manifest_version": "0.3",
+  "name": "sde-mcp",
+  "display_name": "SD Elements MCP Server",
+  "version": "{{VERSION}}",
+  "description": "MCP server for SD Elements",
+  "icon": "icon.png",
+  "author": {
+    "name": "SD Elements",
+    "url": "https://github.com/sdelements"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdelements/sde-mcp"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "SDE_HOST": "${user_config.host}",
+        "SDE_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "host": {
+      "type": "string",
+      "title": "SD Elements Host",
+      "description": "Your SD Elements instance URL (e.g., https://your-instance.sdelements.com)",
+      "required": true
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Your SD Elements API key",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}

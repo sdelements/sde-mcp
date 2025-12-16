@@ -1,0 +1,94 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - "v*"
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node-version: [lts/*, current]
+    env:
+      CI: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout ${{ github.sha }}
+        uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: https://registry.npmjs.org/
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Build
+        run: npm run build --if-present
+      - name: Test
+        run: npm run test
+      - name: Test (coverage)
+        if: matrix.node-version == 'lts/*'
+        run: npm run test:coverage
+      - name: Upload coverage artifact
+        if: matrix.node-version == 'lts/*'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage/lcov.info
+            coverage/lcov-report/**
+          if-no-files-found: error
+      - name: Build MCPB
+        if: matrix.node-version == 'lts/*'
+        run: npm run build:mcpb
+      - name: Upload MCPB artifact
+        if: matrix.node-version == 'lts/*'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sde-mcp-mcpb
+          path: sde-mcp.mcpb
+          if-no-files-found: error
+
+  deploy:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      CI: true
+    steps:
+      - name: Checkout ${{ github.sha }}
+        uses: actions/checkout@v4
+      - name: Use Node.js with the npmjs.org registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org/
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build --if-present
+      - name: Build MCPB
+        run: npm run build:mcpb
+      - name: Update server.json version and SHA256
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          MCPB_FILE_SHA256=$(sha256sum sde-mcp.mcpb | cut -d' ' -f1)
+          sed "s/{{VERSION}}/$VERSION/g; s/{{MCPB_FILE_SHA256}}/$MCPB_FILE_SHA256/g" server.json > server.json.tmp
+          mv server.json.tmp server.json

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.sdelements/sde-mcp",
+  "title": "SD Elements MCP Server",
+  "description": "MCP server for SD Elements API v2 (projects, surveys, countermeasures, scans, reports, diagrams, users).",
+  "websiteUrl": "https://github.com/sdelements/sde-mcp#readme",
+  "icons": [
+    {
+      "mimeType": "image/png",
+      "src": "https://raw.githubusercontent.com/sdelements/sde-mcp/refs/heads/master/icon.png"
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/sdelements/sde-mcp.git",
+    "source": "github"
+  },
+  "version": "{{VERSION}}",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "sde-mcp",
+      "version": "{{VERSION}}",
+      "runtimeHint": "npx",
+      "environmentVariables": [],
+      "transport": {
+        "type": "stdio"
+      }
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/sdelements/sde-mcp/releases/download/v{{VERSION}}/sde-mcp.mcpb",
+      "version": "{{VERSION}}",
+      "fileSha256": "{{MCPB_FILE_SHA256}}",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
