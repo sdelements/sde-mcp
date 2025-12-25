@@ -18,6 +18,25 @@ from .server import mcp, api_client, init_api_client
 # or: sde://project/{project_id}/tasks/{task_id}
 
 
+async def get_context_from_roots(ctx: Context) -> Optional[str]:
+    """
+    Extract workspace root path from MCP roots.
+    
+    Returns the first root's file path, or None if roots not available.
+    """
+    try:
+        roots = await ctx.list_roots()
+        if roots and len(roots) > 0:
+            first_root = roots[0]
+            if hasattr(first_root, 'uri'):
+                uri = first_root.uri
+                if uri.startswith('file://'):
+                    return uri[7:]  # Remove 'file://' prefix
+    except Exception:
+        pass
+    return None
+
+
 def get_project_id_from_config(context_path: Optional[str] = None) -> Optional[int]:
     """
     Find .sdelements.yaml by searching upwards from context_path.
@@ -88,11 +107,8 @@ async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None)
     
     # Auto-detect project_id if not provided
     if project_id is None:
-        # Try to get context from MCP (e.g., current file path from roots)
-        # The Context object may contain information about the current workspace
-        context_path = None
-        # TODO: Extract context_path from ctx if available (depends on MCP client implementation)
-        
+        # Try to get context from MCP roots (workspace folders)
+        context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
             return "Error: No project_id provided and no .sdelements.yaml file found"
