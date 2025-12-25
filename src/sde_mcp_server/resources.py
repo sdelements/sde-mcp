@@ -5,6 +5,9 @@ Provides security rules and guidelines as MCP resources that can be consumed
 by AI IDEs (Cursor, Claude Desktop, Cody, Continue.dev, etc.)
 """
 
+import os
+import yaml
+from pathlib import Path
 from typing import Dict, List, Optional
 from fastmcp import Context
 
@@ -15,8 +18,37 @@ from .server import mcp, api_client, init_api_client
 # or: sde://project/{project_id}/tasks/{task_id}
 
 
+def get_project_id_from_config() -> Optional[int]:
+    """
+    Try to find project_id from .sdelements.yaml in current directory or parent directories.
+    Falls back to SDE_PROJECT_ID environment variable.
+    """
+    # First try environment variable
+    env_project_id = os.getenv('SDE_PROJECT_ID')
+    if env_project_id:
+        try:
+            return int(env_project_id)
+        except ValueError:
+            pass
+    
+    # Search for .sdelements.yaml starting from current directory
+    current = Path.cwd()
+    for parent in [current] + list(current.parents):
+        config_file = parent / '.sdelements.yaml'
+        if config_file.exists():
+            try:
+                with open(config_file) as f:
+                    config = yaml.safe_load(f)
+                    if config and 'project_id' in config:
+                        return int(config['project_id'])
+            except Exception:
+                continue
+    
+    return None
+
+
 @mcp.resource("sde://project/{project_id}/rules/all")
-async def get_all_security_rules(ctx: Context, project_id: int) -> str:
+async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get all security rules for a project as a comprehensive markdown document.
     
@@ -26,6 +58,12 @@ async def get_all_security_rules(ctx: Context, project_id: int) -> str:
     global api_client
     if api_client is None:
         api_client = init_api_client()
+    
+    # Auto-detect project_id if not provided
+    if project_id is None:
+        project_id = get_project_id_from_config()
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
     
     try:
         # Fetch all countermeasures for the project
