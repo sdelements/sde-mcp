@@ -18,6 +18,78 @@ from .server import mcp, api_client, init_api_client
 # or: sde://project/{project_id}/tasks/{task_id}
 
 
+async def _prompt_user_to_create_project(ctx: Context) -> str:
+    """
+    Prompt the user to create an SD Elements project when no .sdelements.yaml exists.
+    
+    Uses MCP sampling to guide the user through project creation.
+    """
+    try:
+        # Use MCP sampling to ask the AI to help create a project
+        response = await ctx.sample(
+            messages=[{
+                "role": "user",
+                "content": """No SD Elements project is configured for this workspace.
+
+To get security guidance, you need to create an SD Elements project. Would you like me to help you create one?
+
+I can use the @sdelements MCP server's `create_project_from_code` tool to:
+1. Analyze your codebase
+2. Create an SD Elements project
+3. Generate a .sdelements.yaml file
+4. Provide security countermeasures
+
+Should I proceed with creating an SD Elements project for this workspace?"""
+            }],
+            max_tokens=100
+        )
+        
+        # Return a helpful message that includes the sampling response
+        return f"""# No SD Elements Project Configured
+
+{response.get('content', 'No .sdelements.yaml file found in this workspace.')}
+
+To configure SD Elements security guidance:
+
+1. **Option 1: Let me create one for you**
+   - I can use the `create_project_from_code` tool to analyze your codebase
+   - This will create an SD Elements project and generate `.sdelements.yaml`
+
+2. **Option 2: Manual setup**
+   - Create a `.sdelements.yaml` file in your project root
+   - Add: `project_id: YOUR_PROJECT_ID`
+   - Get your project ID from SD Elements
+
+3. **Option 3: Use environment variable**
+   - Set `SDE_PROJECT_ID` in your environment
+
+Once configured, I'll provide security rules from SD Elements automatically.
+"""
+    except Exception as e:
+        # Fallback if sampling fails
+        return f"""# No SD Elements Project Configured
+
+No `.sdelements.yaml` file found in this workspace.
+
+To get security guidance from SD Elements, you have these options:
+
+1. **Let me create an SD Elements project for you**
+   - Ask me to "create an SD Elements project for this codebase"
+   - I'll use the `create_project_from_code` tool to analyze your code
+   - This will generate a `.sdelements.yaml` file automatically
+
+2. **Manual setup**
+   - Create a `.sdelements.yaml` file in your project root
+   - Add: `project_id: YOUR_PROJECT_ID`
+   - Get your project ID from SD Elements
+
+3. **Use environment variable**
+   - Set `SDE_PROJECT_ID` in your environment
+
+Once configured, I'll provide security rules automatically when you're coding.
+"""
+
+
 async def get_context_from_roots(ctx: Context) -> Optional[str]:
     """
     Extract workspace root path from MCP roots.
@@ -111,7 +183,8 @@ async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None)
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            # No .sdelements.yaml found - prompt user to create SD Elements project
+            return await _prompt_user_to_create_project(ctx)
     
     try:
         # Fetch all risk-relevant countermeasures for the project
@@ -264,7 +337,7 @@ async def get_authentication_rules(ctx: Context, project_id: Optional[int] = Non
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
@@ -296,7 +369,7 @@ async def get_cryptography_rules(ctx: Context, project_id: Optional[int] = None)
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
@@ -329,7 +402,7 @@ async def get_authorization_rules(ctx: Context, project_id: Optional[int] = None
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
@@ -361,7 +434,7 @@ async def get_container_rules(ctx: Context, project_id: Optional[int] = None) ->
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
@@ -391,7 +464,7 @@ async def get_cicd_rules(ctx: Context, project_id: Optional[int] = None) -> str:
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
@@ -424,7 +497,7 @@ async def get_input_validation_rules(ctx: Context, project_id: Optional[int] = N
         context_path = await get_context_from_roots(ctx)
         project_id = get_project_id_from_config(context_path)
         if project_id is None:
-            return "Error: No project_id provided and no .sdelements.yaml file found"
+            return await _prompt_user_to_create_project(ctx)
     
     return await _get_rules_by_keywords(
         project_id=project_id,
