@@ -799,6 +799,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## AGENTS.md Integration
+
+The MCP server automatically creates `AGENTS.md` when you call `create_project_from_code`. This file instructs AI agents to check SD Elements before implementing code.
+
+**Works with**: Cline, Roo-Cline, and other tools that support `AGENTS.md`
+
+See `examples/AGENTS.md` for the generated content.
+
 ## Support
 
 For issues and questions:
