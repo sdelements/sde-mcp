@@ -1,5 +1,6 @@
 """Tools module for SD Elements MCP Server"""
 
+from .setup import *
 from .projects import *
 from .applications import *
 from .surveys import *
