@@ -20,7 +20,7 @@ from .server import mcp, api_client, init_api_client
 
 def get_project_id_from_config() -> Optional[int]:
     """
-    Try to find project_id from .sdelements.yaml in project root.
+    Search upwards from MCP server location to find .sdelements.yaml file.
     Falls back to SDE_PROJECT_ID environment variable.
     """
     # First try environment variable
@@ -31,21 +31,25 @@ def get_project_id_from_config() -> Optional[int]:
         except ValueError:
             pass
     
-    # Try to find project root by looking for .sdelements.yaml
-    # Start from MCP server's parent directory (the project root)
-    # The MCP server is typically in sde-mcp/ subdirectory
-    server_dir = Path(__file__).parent.parent.parent  # Go up from resources.py to project root
+    # Start from MCP server's directory and search upwards
+    current = Path(__file__).resolve().parent
     
-    # Check project root for .sdelements.yaml
-    config_file = server_dir.parent / '.sdelements.yaml'
-    if config_file.exists():
-        try:
-            with open(config_file) as f:
-                config = yaml.safe_load(f)
-                if config and 'project_id' in config:
-                    return int(config['project_id'])
-        except Exception:
-            pass
+    # Search up to root directory
+    for directory in [current] + list(current.parents):
+        config_file = directory / '.sdelements.yaml'
+        if config_file.exists():
+            try:
+                with open(config_file) as f:
+                    config = yaml.safe_load(f)
+                    if config and 'project_id' in config:
+                        return int(config['project_id'])
+            except Exception:
+                # Continue searching if this file is invalid
+                continue
+        
+        # Stop at filesystem root
+        if directory.parent == directory:
+            break
     
     return None
 
