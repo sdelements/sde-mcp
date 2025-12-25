@@ -10,6 +10,22 @@ A Model Context Protocol server that provides **SD Elements API integration**. T
 
 </div>
 
+## Features
+
+This server provides both **Tools** (actions) and **Resources** (security guidance):
+
+### MCP Resources (Security Guidance)
+
+Access SD Elements security rules and countermeasure guidance directly in your IDE:
+
+- **Security Rules by Category**: Authentication, Cryptography, Authorization, Input Validation, Container Security, CI/CD
+- **Project Countermeasures**: Get guidance for specific project tasks
+- **Direct Integration**: Rules appear in AI context automatically
+
+**Usage**: AI agents can read resources like `sdelements://rules/authentication` or `sdelements://project/123/countermeasures` to get security guidance before implementing code.
+
+See `RESOURCES.md` for full documentation.
+
 ## Available Tools
 
 ### Project Management
@@ -526,8 +542,11 @@ Use the Advanced Reports and Cube API to generate custom analytics and insights 
 "Call the custom API endpoint with specific parameters"
 ```
 
-## Features
+## Key Capabilities
 
+- **MCP Resources**: Security rules and countermeasure guidance accessible in AI context
+- **MCP Tools**: Full SD Elements API access via natural language
+- **Auto-generated AGENTS.md**: Instructs AI agents to check security before coding
 - **Natural Language Control**: Manage SD Elements using plain English
 - **Full API Coverage**: Supports all major SD Elements API endpoints
 - **Authentication**: Secure API key-based authentication
