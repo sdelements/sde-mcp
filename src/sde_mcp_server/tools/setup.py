@@ -126,19 +126,26 @@ async def check_project_configuration(ctx: Context) -> str:
     else:
         result["message"] = "❌ No SD Elements project configured for this workspace"
         result["next_steps"] = [
-            "**RECOMMENDED**: Create an SD Elements project by calling the 'create_project_from_code' tool",
-            "  - This will analyze your codebase",
-            "  - Create an SD Elements project",
-            "  - Generate a .sdelements.yaml file",
-            "  - Provide security countermeasures",
+            "**Option 1 (RECOMMENDED)**: Automatically create project from codebase",
+            "  - Call the 'create_project_from_code' tool",
+            "  - This will analyze your codebase and auto-configure security settings",
+            "  - Generates .sdelements.yaml file automatically",
+            "  - Provides tailored security countermeasures",
             "",
-            "**Alternative**: Manually create .sdelements.yaml:",
-            "  1. Create a project in SD Elements",
-            "  2. Create .sdelements.yaml in project root",
-            "  3. Add: project_id: YOUR_PROJECT_ID",
+            "**Option 2**: Create project with profile selection",
+            "  - Call the 'create_project' tool",
+            "  - Choose a security profile (Web App, Mobile, API, etc.)",
+            "  - Manually configure project settings",
+            "  - Then create .sdelements.yaml with the project_id",
             "",
-            "**Alternative**: Set environment variable:",
-            "  export SDE_PROJECT_ID=YOUR_PROJECT_ID"
+            "**Option 3**: Use existing SD Elements project",
+            "  - If you already have a project in SD Elements:",
+            "  - Create .sdelements.yaml in project root",
+            "  - Add: project_id: YOUR_PROJECT_ID",
+            "",
+            "**Option 4**: Set environment variable",
+            "  - export SDE_PROJECT_ID=YOUR_PROJECT_ID",
+            "  - Useful for temporary testing or CI/CD"
         ]
     
     return json.dumps(result, indent=2)
