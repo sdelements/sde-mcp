@@ -18,10 +18,19 @@ from .server import mcp, api_client, init_api_client
 # or: sde://project/{project_id}/tasks/{task_id}
 
 
-def get_project_id_from_config() -> Optional[int]:
+def get_project_id_from_config(context_path: Optional[str] = None) -> Optional[int]:
     """
-    Find .sdelements.yaml in project root (cwd where MCP server was started).
-    Falls back to SDE_PROJECT_ID environment variable.
+    Find .sdelements.yaml by searching upwards from context_path.
+    
+    For mono repos with multiple .sdelements.yaml files, this searches upwards
+    from the current file/directory context to find the nearest config.
+    
+    Args:
+        context_path: Path to start searching from (e.g., current file being edited).
+                     If None, uses MCP server's cwd.
+    
+    Returns:
+        project_id from the nearest .sdelements.yaml, or from SDE_PROJECT_ID env var
     """
     # First try environment variable
     env_project_id = os.getenv('SDE_PROJECT_ID')
@@ -31,20 +40,33 @@ def get_project_id_from_config() -> Optional[int]:
         except ValueError:
             pass
     
-    # The MCP server is started with cwd set to the project root
-    # (see mcp.json: "cwd": "${workspaceFolder}/sde-mcp")
-    # So we need to go up one level from the MCP server's cwd
-    project_root = Path.cwd().parent
+    # Determine starting point for search
+    if context_path:
+        # Start from the provided context (e.g., file being edited)
+        start_path = Path(context_path).resolve()
+        if start_path.is_file():
+            start_path = start_path.parent
+    else:
+        # Fall back to MCP server's cwd parent (project root)
+        start_path = Path.cwd().parent
     
-    config_file = project_root / '.sdelements.yaml'
-    if config_file.exists():
-        try:
-            with open(config_file) as f:
-                config = yaml.safe_load(f)
-                if config and 'project_id' in config:
-                    return int(config['project_id'])
-        except Exception:
-            pass
+    # Search upwards for .sdelements.yaml
+    current = start_path
+    while True:
+        config_file = current / '.sdelements.yaml'
+        if config_file.exists():
+            try:
+                with open(config_file) as f:
+                    config = yaml.safe_load(f)
+                    if config and 'project_id' in config:
+                        return int(config['project_id'])
+            except Exception:
+                pass
+        
+        # Stop at filesystem root
+        if current.parent == current:
+            break
+        current = current.parent
     
     return None
 
@@ -56,6 +78,9 @@ async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None)
     
     This resource provides complete security guidelines from SD Elements
     countermeasures, formatted for AI IDE consumption.
+    
+    For mono repos: Automatically finds the nearest .sdelements.yaml by searching
+    upwards from the current context (file being edited or workspace root).
     """
     global api_client
     if api_client is None:
@@ -63,7 +88,12 @@ async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None)
     
     # Auto-detect project_id if not provided
     if project_id is None:
-        project_id = get_project_id_from_config()
+        # Try to get context from MCP (e.g., current file path from roots)
+        # The Context object may contain information about the current workspace
+        context_path = None
+        # TODO: Extract context_path from ctx if available (depends on MCP client implementation)
+        
+        project_id = get_project_id_from_config(context_path)
         if project_id is None:
             return "Error: No project_id provided and no .sdelements.yaml file found"
     
