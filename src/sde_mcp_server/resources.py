@@ -251,13 +251,19 @@ This addresses:
 
 
 @mcp.resource("sde://project/{project_id}/rules/authentication")
-async def get_authentication_rules(ctx: Context, project_id: int) -> str:
+async def get_authentication_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get authentication and session management security rules.
     
     Includes rules for passwords, sessions, account security, MFA, login, logout,
     password reset, account lockout, credential storage, and user authentication.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Authentication & Session Management",
@@ -277,13 +283,19 @@ async def get_authentication_rules(ctx: Context, project_id: int) -> str:
 
 
 @mcp.resource("sde://project/{project_id}/rules/cryptography")
-async def get_cryptography_rules(ctx: Context, project_id: int) -> str:
+async def get_cryptography_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get cryptography security rules.
     
     Includes rules for encryption, decryption, TLS/SSL, random number generation,
     hashing, key management, certificates, ciphers, and secure communication.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Cryptography",
@@ -304,13 +316,19 @@ async def get_cryptography_rules(ctx: Context, project_id: int) -> str:
 
 
 @mcp.resource("sde://project/{project_id}/rules/authorization")
-async def get_authorization_rules(ctx: Context, project_id: int) -> str:
+async def get_authorization_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get authorization and access control security rules.
     
     Includes rules for API authorization, permissions, role-based access control (RBAC),
     insecure direct object references (IDOR), privilege escalation, and access checks.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Authorization & Access Control",
@@ -330,13 +348,19 @@ async def get_authorization_rules(ctx: Context, project_id: int) -> str:
 
 
 @mcp.resource("sde://project/{project_id}/rules/container")
-async def get_container_rules(ctx: Context, project_id: int) -> str:
+async def get_container_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get container security rules.
     
     Includes rules for Docker, Kubernetes, container images, registries, pods,
     Dockerfiles, orchestration, and container runtime security.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Container Security",
@@ -354,13 +378,19 @@ async def get_container_rules(ctx: Context, project_id: int) -> str:
 
 
 @mcp.resource("sde://project/{project_id}/rules/cicd")
-async def get_cicd_rules(ctx: Context, project_id: int) -> str:
+async def get_cicd_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get CI/CD and supply chain security rules.
     
     Includes rules for CI/CD pipelines, GitHub Actions, GitLab CI, dependencies,
     package management, artifact signing, SBOM, and supply chain security.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="CI/CD & Supply Chain",
@@ -381,13 +411,19 @@ async def get_cicd_rules(ctx: Context, project_id: int) -> str:
 
 
 @mcp.resource("sde://project/{project_id}/rules/input-validation")
-async def get_input_validation_rules(ctx: Context, project_id: int) -> str:
+async def get_input_validation_rules(ctx: Context, project_id: Optional[int] = None) -> str:
     """
     Get input validation and injection prevention rules.
     
     Includes rules for input validation, SSRF, SQL injection, XSS, command injection,
     sanitization, encoding, and secure data handling.
     """
+    if project_id is None:
+        context_path = await get_context_from_roots(ctx)
+        project_id = get_project_id_from_config(context_path)
+        if project_id is None:
+            return "Error: No project_id provided and no .sdelements.yaml file found"
+    
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Input Validation & Injection Prevention",
