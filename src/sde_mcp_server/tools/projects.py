@@ -574,10 +574,11 @@ async def create_project_from_code(
                 "draft_available": draft_state is not None and "error" not in draft_state
             },
             "next_steps": {
-                "step_1": "Review the survey_structure to see all available questions and answers",
-                "step_2": "Use your AI knowledge to determine appropriate answers based on the project context",
-                "step_3": "Call add_survey_answers_by_text or set_project_survey_by_text to set the answers",
-                "step_4": "Call commit_survey_draft to publish the survey and generate countermeasures",
+                "step_1": "**CRITICAL**: Create a .sdelements.yaml file (NOT .sdelements) in the project root with YAML format:\n  project_id: " + str(project_id),
+                "step_2": "Review the survey_structure to see all available questions and answers",
+                "step_3": "Use your AI knowledge to determine appropriate answers based on the project context",
+                "step_4": "Call add_survey_answers_by_text or set_project_survey_by_text to set the answers",
+                "step_5": "Call commit_survey_draft to publish the survey and generate countermeasures",
                 "important": "The survey draft is NOT committed automatically. You must commit it after setting answers."
             }
         }
