@@ -26,6 +26,9 @@ load_dotenv()
 # FastMCP server instance
 mcp = FastMCP("sdelements-mcp")
 
+# Import resources to register them with the server
+from . import resources  # noqa: F401
+
 # Global API client
 api_client: Optional[SDElementsAPIClient] = None
 
