@@ -169,12 +169,24 @@ async def get_authentication_rules(ctx: Context, project_id: int) -> str:
     """
     Get authentication and session management security rules.
     
-    Includes rules for passwords, sessions, account security, and MFA.
+    Includes rules for passwords, sessions, account security, MFA, login, logout,
+    password reset, account lockout, credential storage, and user authentication.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Authentication & Session Management",
-        keywords=["password", "authentication", "session", "login", "account", "mfa", "credential"]
+        keywords=[
+            "password", "passwords", "passwd",
+            "authentication", "authenticate", "auth",
+            "session", "sessions", "cookie", "cookies",
+            "login", "logout", "sign-in", "signin",
+            "account", "accounts", "user",
+            "mfa", "multi-factor", "2fa", "two-factor",
+            "credential", "credentials", "creds",
+            "reset", "forgot", "forgotten",
+            "lockout", "lock-out", "brute-force", "bruteforce",
+            "token", "tokens"
+        ]
     )
 
 
@@ -183,12 +195,25 @@ async def get_cryptography_rules(ctx: Context, project_id: int) -> str:
     """
     Get cryptography security rules.
     
-    Includes rules for encryption, TLS, random numbers, and key management.
+    Includes rules for encryption, decryption, TLS/SSL, random number generation,
+    hashing, key management, certificates, ciphers, and secure communication.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Cryptography",
-        keywords=["encrypt", "decrypt", "tls", "ssl", "crypto", "random", "certificate", "key"]
+        keywords=[
+            "encrypt", "encryption", "encrypted", "encrypting",
+            "decrypt", "decryption", "decrypted", "decrypting",
+            "tls", "ssl", "https",
+            "crypto", "cryptographic", "cryptography",
+            "random", "randomness", "prng", "rng",
+            "certificate", "certificates", "cert", "certs",
+            "key", "keys", "keystore",
+            "hash", "hashing", "hashes", "digest",
+            "cipher", "ciphers", "algorithm",
+            "aes", "rsa", "sha", "md5",
+            "secure", "security"
+        ]
     )
 
 
@@ -197,12 +222,24 @@ async def get_authorization_rules(ctx: Context, project_id: int) -> str:
     """
     Get authorization and access control security rules.
     
-    Includes rules for API authorization, permissions, and access control.
+    Includes rules for API authorization, permissions, role-based access control (RBAC),
+    insecure direct object references (IDOR), privilege escalation, and access checks.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Authorization & Access Control",
-        keywords=["authorization", "access", "permission", "rbac", "idor", "api"]
+        keywords=[
+            "authorization", "authorize", "authorized",
+            "access", "accessing", "accessible",
+            "permission", "permissions", "privilege", "privileges",
+            "rbac", "role", "roles",
+            "idor", "direct object",
+            "api", "endpoint", "endpoints", "rest", "restful",
+            "acl", "access control",
+            "forbidden", "deny", "denied",
+            "admin", "administrator",
+            "elevate", "escalation"
+        ]
     )
 
 
@@ -211,12 +248,22 @@ async def get_container_rules(ctx: Context, project_id: int) -> str:
     """
     Get container security rules.
     
-    Includes rules for Docker, Kubernetes, and container image security.
+    Includes rules for Docker, Kubernetes, container images, registries, pods,
+    Dockerfiles, orchestration, and container runtime security.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Container Security",
-        keywords=["docker", "container", "kubernetes", "image", "registry"]
+        keywords=[
+            "docker", "dockerfile",
+            "container", "containers", "containerized",
+            "kubernetes", "k8s", "pod", "pods",
+            "image", "images",
+            "registry", "registries",
+            "orchestration", "orchestrator",
+            "helm", "chart",
+            "compose", "docker-compose"
+        ]
     )
 
 
@@ -225,12 +272,25 @@ async def get_cicd_rules(ctx: Context, project_id: int) -> str:
     """
     Get CI/CD and supply chain security rules.
     
-    Includes rules for pipelines, dependencies, and artifact management.
+    Includes rules for CI/CD pipelines, GitHub Actions, GitLab CI, dependencies,
+    package management, artifact signing, SBOM, and supply chain security.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="CI/CD & Supply Chain",
-        keywords=["pipeline", "cicd", "github", "gitlab", "dependency", "artifact", "supply"]
+        keywords=[
+            "pipeline", "pipelines", "ci", "cd", "cicd", "ci/cd",
+            "github", "actions", "workflow", "workflows",
+            "gitlab", "jenkins", "circleci", "travis",
+            "dependency", "dependencies", "package", "packages",
+            "artifact", "artifacts",
+            "supply", "supply-chain", "supply chain",
+            "npm", "pip", "maven", "gradle",
+            "build", "builds", "builder",
+            "sbom", "bill of materials",
+            "signing", "signature", "sign",
+            "repository", "repo"
+        ]
     )
 
 
@@ -239,13 +299,68 @@ async def get_input_validation_rules(ctx: Context, project_id: int) -> str:
     """
     Get input validation and injection prevention rules.
     
-    Includes rules for SSRF, injection attacks, and input sanitization.
+    Includes rules for input validation, SSRF, SQL injection, XSS, command injection,
+    sanitization, encoding, and secure data handling.
     """
     return await _get_rules_by_keywords(
         project_id=project_id,
         category="Input Validation & Injection Prevention",
-        keywords=["input", "validation", "ssrf", "injection", "sanitize", "xss", "sql"]
+        keywords=[
+            "input", "inputs", "user input",
+            "validation", "validate", "validated", "validating",
+            "ssrf", "server-side request forgery",
+            "injection", "inject", "injected",
+            "sanitize", "sanitization", "sanitized",
+            "xss", "cross-site scripting", "script",
+            "sql", "sqli", "sql injection",
+            "command", "command injection", "shell",
+            "path", "traversal", "directory",
+            "url", "uri", "request",
+            "encode", "encoding", "escape", "escaping",
+            "filter", "filtering"
+        ]
     )
+
+
+def _stem_word(word: str) -> str:
+    """
+    Simple stemming - remove common suffixes.
+    Not perfect but good enough for keyword matching.
+    """
+    word = word.lower()
+    # Remove common suffixes
+    for suffix in ['ing', 'ed', 'ion', 'tion', 'ation', 's', 'es']:
+        if word.endswith(suffix) and len(word) > len(suffix) + 2:
+            return word[:-len(suffix)]
+    return word
+
+
+def _keyword_matches(text: str, keywords: List[str]) -> bool:
+    """
+    Check if any keyword (or its stem) appears in text.
+    More inclusive matching with stemming.
+    """
+    text_lower = text.lower()
+    text_words = set(text_lower.split())
+    text_stems = {_stem_word(w) for w in text_words}
+    
+    for keyword in keywords:
+        keyword_lower = keyword.lower()
+        keyword_stem = _stem_word(keyword_lower)
+        
+        # Direct match
+        if keyword_lower in text_lower:
+            return True
+        
+        # Stem match
+        if keyword_stem in text_stems:
+            return True
+        
+        # Word boundary match
+        if any(keyword_lower in word for word in text_words):
+            return True
+    
+    return False
 
 
 async def _get_rules_by_keywords(project_id: int, category: str, keywords: List[str]) -> str:
@@ -271,14 +386,14 @@ async def _get_rules_by_keywords(project_id: int, category: str, keywords: List[
             risk_relevant=True
         )
         
-        # Filter by keywords
+        # Filter by keywords with stemming
         filtered_tasks = []
         for task in countermeasures.get('results', []):
-            title = task.get('title', '').lower()
-            text = task.get('text', '').lower()
+            title = task.get('title', '')
+            text = task.get('text', '')
             
-            # Check if any keyword matches
-            if any(keyword.lower() in title or keyword.lower() in text for keyword in keywords):
+            # Check if any keyword matches (with stemming)
+            if _keyword_matches(title, keywords) or _keyword_matches(text, keywords):
                 filtered_tasks.append(task)
         
         # Generate markdown
