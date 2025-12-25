@@ -114,10 +114,12 @@ async def get_all_security_rules(ctx: Context, project_id: Optional[int] = None)
             return "Error: No project_id provided and no .sdelements.yaml file found"
     
     try:
-        # Fetch all countermeasures for the project
+        # Fetch all risk-relevant countermeasures for the project
+        # Match the list_countermeasures tool behavior
+        params = {"risk_relevant": "true"}
         countermeasures = await api_client.list_countermeasures(
             project_id=project_id,
-            risk_relevant=True
+            params=params
         )
         
         # Generate comprehensive markdown
@@ -502,10 +504,12 @@ async def _get_rules_by_keywords(project_id: int, category: str, keywords: List[
         api_client = init_api_client()
     
     try:
-        # Fetch all countermeasures
+        # Fetch all risk-relevant countermeasures
+        # Match the list_countermeasures tool behavior
+        params = {"risk_relevant": "true"}
         countermeasures = await api_client.list_countermeasures(
             project_id=project_id,
-            risk_relevant=True
+            params=params
         )
         
         # Filter by keywords with stemming
