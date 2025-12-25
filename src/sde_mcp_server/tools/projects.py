@@ -543,6 +543,18 @@ async def create_project_from_code(
         except Exception as draft_error:
             draft_state = {"error": str(draft_error)}
         
+        # Setup workspace instructions (AGENTS.md)
+        workspace_setup_result = None
+        try:
+            from .workspace import setup_workspace_instructions
+            workspace_setup_json = await setup_workspace_instructions(ctx)
+            workspace_setup_result = json.loads(workspace_setup_json)
+        except Exception as workspace_error:
+            workspace_setup_result = {
+                "success": False,
+                "error": str(workspace_error)
+            }
+        
         result = {
             "success": True,
             "application": {
@@ -573,6 +585,7 @@ async def create_project_from_code(
                 "has_answers": selected_answers_count > 0,
                 "draft_available": draft_state is not None and "error" not in draft_state
             },
+            "workspace_setup": workspace_setup_result,
             "next_steps": {
                 "step_1": "**CRITICAL**: Create a .sdelements.yaml file (NOT .sdelements) in the project root with YAML format:\n  project_id: " + str(project_id),
                 "step_2": "Review the survey_structure to see all available questions and answers",

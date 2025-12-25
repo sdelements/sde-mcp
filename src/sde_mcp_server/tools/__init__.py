@@ -11,4 +11,5 @@ from .scans import *
 from .diagrams import *
 from .reports import *
 from .generic import *
+from .workspace import *
 
