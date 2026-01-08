@@ -1,3 +1,6 @@
+> **Warning**
+> This project is a **work in progress**. Use at your own risk.
+
 ### SD Elements MCP Server
 
 MCP server for **SD Elements API v2** (STDIO only). Use it from MCP clients to manage projects, surveys, countermeasures, scans, reports, diagrams, and users.
