@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { registerGenericTools } from "../../src/tools/generic.js";
-import { registerSurveyTools } from "../../src/tools/surveys.js";
+import { registerGenericTools } from "../../src/tools/generic";
+import { registerSurveyTools } from "../../src/tools/surveys";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { SDElementsClient } from "../../src/utils/apiClient.js";
+import type { SDElementsClient } from "../../src/utils/apiClient";
 
 type ToolResult = {
   content: Array<{ type: string; text: string }>;
@@ -160,6 +160,7 @@ describe("tool handlers (unit)", () => {
     expect(body.message).toMatch(/No answers/);
   });
 });
+
 
 
 

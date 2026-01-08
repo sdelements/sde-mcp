@@ -9,8 +9,8 @@ import {
   SDElementsClient,
   type CubeQuery,
   type SDElementsQueryParams,
-} from "../utils/apiClient.js";
-import { jsonToolResult } from "./_shared.js";
+} from "../utils/apiClient";
+import { jsonToolResult } from "./_shared";
 
 /**
  * Parse query parameter from string or object

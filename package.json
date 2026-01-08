@@ -18,14 +18,16 @@
   "mcpName": "io.github.sdelements/sde-mcp",
   "scripts": {
     "start": "npm run build && node dist/index.js",
+    "start:http": "npm run build && node dist/index.js --http",
+    "start:stdio": "npm run build && node dist/index.js",
     "prepare": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
     "lint": "eslint",
     "clean": "rm -rf dist",
-    "build": "tsc --project tsconfig.build.json",
-    "build:mcpb": "./build-mcpb.sh",
+    "build": "npm run clean && tsc --project tsconfig.build.json --emitDeclarationOnly && node scripts/build.mjs",
+    "build:mcpb": "./scripts/build-mcpb.sh",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
@@ -43,5 +45,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0",
     "vitest": "^4.0.15"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { SDElementsClient } from "../../src/utils/apiClient.js";
-import { registerProjectTools } from "../../src/tools/project.js";
+import type { SDElementsClient } from "../../src/utils/apiClient";
+import { registerProjectTools } from "../../src/tools/project";
 
 type ToolResult = {
   content: Array<{ type: string; text: string }>;
@@ -77,6 +77,7 @@ describe("project tool handlers (unit)", () => {
     expect(body.suggestion).toMatch(/list_risk_policies/i);
   });
 });
+
 
 
 

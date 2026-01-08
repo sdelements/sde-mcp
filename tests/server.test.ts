@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { createServer, setupSignalHandlers } from "../src/server.js";
+import { createServer, setupSignalHandlers } from "../src/mcp";
 
-describe("src/server", () => {
+describe("src/mcp", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     delete process.env.SDE_HOST;
@@ -59,5 +59,6 @@ describe("src/server", () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 });
+
 
 

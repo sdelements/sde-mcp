@@ -5,9 +5,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SDElementsClient } from "../utils/apiClient.js";
-import { extractAnswerTextsFromContext } from "../utils/mappings.js";
-import { buildParams, jsonToolResult } from "./_shared.js";
+import { SDElementsClient } from "../utils/apiClient";
+import { extractAnswerTextsFromContext } from "../utils/mappings";
+import { buildParams, jsonToolResult } from "./_shared";
 
 // Type definitions for API responses
 interface Profile {
@@ -192,7 +192,8 @@ export function registerProjectTools(
       // For now, name and profile_id are required (elicitation not implemented yet)
       if (!name) {
         return jsonToolResult({
-          error: "Project name is required. Please provide the 'name' parameter.",
+          error:
+            "Project name is required. Please provide the 'name' parameter.",
         });
       }
 
@@ -206,7 +207,8 @@ export function registerProjectTools(
 
         if (profiles.length === 0) {
           return jsonToolResult({
-            error: "No profiles available. Cannot create project without a profile.",
+            error:
+              "No profiles available. Cannot create project without a profile.",
           });
         }
 
@@ -226,8 +228,12 @@ export function registerProjectTools(
             resolvedProfileId = defaultProfile.id;
           } else {
             return jsonToolResult({
-              error: "Profile is required. Please provide the 'profile_id' parameter.",
-              available_profiles: profiles.map((p) => ({ id: p.id, name: p.name })),
+              error:
+                "Profile is required. Please provide the 'profile_id' parameter.",
+              available_profiles: profiles.map((p) => ({
+                id: p.id,
+                name: p.name,
+              })),
             });
           }
         }
@@ -273,21 +279,21 @@ export function registerProjectTools(
         if (typeof risk_policy === "string") {
           const parsed = parseInt(risk_policy, 10);
           if (isNaN(parsed)) {
-          return jsonToolResult({
-            error: `risk_policy must be an integer ID, got string that cannot be converted: ${risk_policy}`,
-            suggestion:
-              "Use list_risk_policies to find the correct risk policy ID (numeric value)",
-          });
+            return jsonToolResult({
+              error: `risk_policy must be an integer ID, got string that cannot be converted: ${risk_policy}`,
+              suggestion:
+                "Use list_risk_policies to find the correct risk policy ID (numeric value)",
+            });
           }
           resolvedRiskPolicy = parsed;
         } else if (typeof risk_policy === "number") {
           resolvedRiskPolicy = risk_policy;
         } else {
-        return jsonToolResult({
-          error: `risk_policy must be an integer ID, got ${typeof risk_policy}: ${risk_policy}`,
-          suggestion:
-            "Use list_risk_policies to find the correct risk policy ID (numeric value)",
-        });
+          return jsonToolResult({
+            error: `risk_policy must be an integer ID, got ${typeof risk_policy}: ${risk_policy}`,
+            suggestion:
+              "Use list_risk_policies to find the correct risk policy ID (numeric value)",
+          });
         }
       }
 
@@ -684,10 +690,7 @@ export function registerProjectTools(
 
         const matchedAnswers = libraryAnswers
           .filter(
-            (ans) =>
-              ans.text &&
-              matchedAnswerTexts.includes(ans.text) &&
-              ans.id
+            (ans) => ans.text && matchedAnswerTexts.includes(ans.text) && ans.id
           )
           .slice(0, 50)
           .map((ans) => ({

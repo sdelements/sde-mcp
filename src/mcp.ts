@@ -1,9 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { registerAll } from "./tools/index.js";
+import { registerAll } from "./tools/index";
 
 const PACKAGE_VERSION: string = (() => {
   try {
@@ -18,13 +17,15 @@ const PACKAGE_VERSION: string = (() => {
   }
 })();
 
-export function createServer(): McpServer {
+export function createServer(
+  creds?: import("./tools/index").SdeCredentials
+): McpServer {
   const server = new McpServer({
     name: "sde-mcp",
     version: PACKAGE_VERSION,
   });
 
-  registerAll(server);
+  registerAll(server, creds);
 
   return server;
 }
@@ -34,20 +35,9 @@ export function setupSignalHandlers(cleanup: () => Promise<void>): void {
     await cleanup();
     process.exit(0);
   });
+
   process.on("SIGTERM", async () => {
     await cleanup();
     process.exit(0);
   });
 }
-
-export async function main(): Promise<void> {
-  // STDIO-only server
-  const server = createServer();
-  setupSignalHandlers(async () => server.close());
-
-  const stdioTransport = new StdioServerTransport();
-  await server.connect(stdioTransport);
-  console.error("MCP server running on stdio");
-}
-
-

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractAnswerTextsFromContext } from "../../src/utils/mappings.js";
+import { extractAnswerTextsFromContext } from "../../src/utils/mappings";
 
 describe("extractAnswerTextsFromContext", () => {
   it("returns [] for empty context", () => {

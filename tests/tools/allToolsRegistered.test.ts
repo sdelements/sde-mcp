@@ -1,17 +1,17 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { SDElementsClient } from "../../src/utils/apiClient.js";
+import type { SDElementsClient } from "../../src/utils/apiClient";
 
-import { registerApplicationTools } from "../../src/tools/applications.js";
-import { registerBusinessUnitTools } from "../../src/tools/businessUnits.js";
-import { registerCountermeasureTools } from "../../src/tools/countermeasures.js";
-import { registerDiagramTools } from "../../src/tools/diagrams.js";
-import { registerGenericTools } from "../../src/tools/generic.js";
-import { registerProjectTools } from "../../src/tools/project.js";
-import { registerReportTools } from "../../src/tools/reports.js";
-import { registerScanTools } from "../../src/tools/scans.js";
-import { registerSurveyTools } from "../../src/tools/surveys.js";
-import { registerUserTools } from "../../src/tools/users.js";
+import { registerApplicationTools } from "../../src/tools/applications";
+import { registerBusinessUnitTools } from "../../src/tools/businessUnits";
+import { registerCountermeasureTools } from "../../src/tools/countermeasures";
+import { registerDiagramTools } from "../../src/tools/diagrams";
+import { registerGenericTools } from "../../src/tools/generic";
+import { registerProjectTools } from "../../src/tools/project";
+import { registerReportTools } from "../../src/tools/reports";
+import { registerScanTools } from "../../src/tools/scans";
+import { registerSurveyTools } from "../../src/tools/surveys";
+import { registerUserTools } from "../../src/tools/users";
 
 type ToolResult = {
   content: Array<{ type: string; text: string }>;
@@ -341,7 +341,3 @@ describe("tools (coverage)", () => {
     }
   });
 });
-
-
-
-

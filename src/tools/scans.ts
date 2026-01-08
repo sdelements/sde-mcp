@@ -8,8 +8,8 @@ import { z } from "zod";
 import {
   SDElementsClient,
   type SDElementsQueryParams,
-} from "../utils/apiClient.js";
-import { jsonToolResult } from "./_shared.js";
+} from "../utils/apiClient";
+import { jsonToolResult } from "./_shared";
 
 /**
  * Register all repository scanning tools

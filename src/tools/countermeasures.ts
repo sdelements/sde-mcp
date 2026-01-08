@@ -9,8 +9,8 @@ import {
   SDElementsClient,
   type SDElementsQueryParams,
   type SDElementsTaskStatus,
-} from "../utils/apiClient.js";
-import { jsonToolResult } from "./_shared.js";
+} from "../utils/apiClient";
+import { jsonToolResult } from "./_shared";
 
 /**
  * Normalize countermeasure ID to full format (project_id-task_id).

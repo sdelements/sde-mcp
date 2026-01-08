@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerAll } from "../../src/tools/index.js";
+import { registerAll } from "../../src/tools/index";
 
 class CapturingServer {
   tools = new Set<string>();
@@ -20,10 +20,10 @@ describe("tools/index registerAll", () => {
     // Ensure env vars are unset for this test
     delete process.env.SDE_HOST;
     delete process.env.SDE_API_KEY;
-    
-    expect(() => registerAll(new CapturingServer() as unknown as McpServer)).toThrow(
-      /Missing required environment variables/
-    );
+
+    expect(() =>
+      registerAll(new CapturingServer() as unknown as McpServer)
+    ).toThrow(/Missing required environment variables/);
   });
 
   it("registers tools when env vars are present (and warms library answers best-effort)", () => {
@@ -58,5 +58,3 @@ describe("tools/index registerAll", () => {
     expect(names).toContain("api_request");
   });
 });
-
-

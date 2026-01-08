@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { SDElementsClient } from "../../src/utils/apiClient.js";
+import { SDElementsClient } from "../../src/utils/apiClient";
 
 function mockFetchOnce(impl: Parameters<typeof vi.fn>[0]) {
   const fn = vi.fn(impl);

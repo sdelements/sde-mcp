@@ -5,8 +5,8 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SDElementsClient } from "../utils/apiClient.js";
-import { buildParams, jsonToolResult } from "./_shared.js";
+import { SDElementsClient } from "../utils/apiClient";
+import { buildParams, jsonToolResult } from "./_shared";
 
 /**
  * Register all application-related tools

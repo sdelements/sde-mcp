@@ -17,6 +17,39 @@ npm run start
 - **`SDE_HOST`**: `https://your-sdelements-instance.com`
 - **`SDE_API_KEY`**: `your-api-key-here`
 
+### HTTP setup
+
+Use HTTP mode when you want a long-running server instead of STDIO.
+
+```bash
+npm run start:http
+```
+
+- **Credentials**: do **not** set `SDE_HOST` or `SDE_API_KEY` in the server process. The HTTP server refuses to start if either is set (including `SDE_API_KEY`). Each client request must provide credentials instead.
+- **Instance allowlist (required)**: set `MCP_SDE_INSTANCE_ALLOWLIST` to a comma-separated list of allowed SDE hosts (for example `https://sde.example.com,https://sde2.example.com`). Requests with `SDE_HOST` outside this list are rejected.
+- **Port/host**: configure with `MCP_PORT` (default `3000`) and `MCP_HOST` (default `127.0.0.1`).
+- **Per-request auth**: send `SDE_HOST` and `SDE_API_KEY` as headers (or `sde_host` / `sde_api_key` in the initialize request body).
+
+### HTTPS unsafe mode
+
+By default, the server rejects non-HTTPS `SDE_HOST` values. For local/dev instances that only serve HTTP, set:
+
+```bash
+SDE_ALLOW_INSECURE_HTTP=true
+```
+
+This allows `http://` hosts. Use only in trusted environments.
+
+Example initialize request:
+
+```bash
+curl -sS http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "SDE_HOST: https://your-sdelements-instance.com" \
+  -H "SDE_API_KEY: your-api-key-here" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"example","version":"0.0.0"}}}'
+```
+
 ### Client setup (Cursor + Claude Desktop)
 
 Both clients use the same `mcpServers` object — the only difference is **where you paste it**.
@@ -52,6 +85,24 @@ Pick one execution style:
       "command": "node",
       "args": ["/absolute/path/to/sde-mcp/dist/main.js"],
       "env": {
+        "SDE_HOST": "https://your-sdelements-instance.com",
+        "SDE_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### HTTP client setup (Cursor)
+
+Start the HTTP server (`npm run start:http`) and set `MCP_SDE_INSTANCE_ALLOWLIST` as described above. Then configure Cursor with an HTTP MCP server entry:
+
+```json
+{
+  "mcpServers": {
+    "sdelements-http": {
+      "url": "http://127.0.0.1:3000/mcp",
+      "headers": {
         "SDE_HOST": "https://your-sdelements-instance.com",
         "SDE_API_KEY": "your-api-key-here"
       }

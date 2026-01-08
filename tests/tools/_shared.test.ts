@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildParams, jsonToolResult } from "../../src/tools/_shared.js";
+import { buildParams, jsonToolResult } from "../../src/tools/_shared";
 
 describe("tools/_shared", () => {
   describe("buildParams", () => {
@@ -43,6 +43,7 @@ describe("tools/_shared", () => {
     });
   });
 });
+
 
 
 

@@ -249,8 +249,44 @@ export class SDElementsClient {
   private libraryAnswersCache: SDElementsSurveyAnswer[] | null = null;
 
   constructor(config: SDElementsConfig) {
-    // Normalize host by removing trailing slash
-    const host = config.host.replace(/\/$/, "");
+    // Normalize + validate host.
+    // Security: avoid SSRF surprises by requiring a clean http(s) origin (no path/query/creds).
+    const rawHost = config.host.replace(/\/$/, "");
+    let parsed: URL;
+    try {
+      parsed = new URL(rawHost);
+    } catch {
+      throw new Error(
+        `[SDElements] Invalid host URL. Expected something like "https://example.com", got: ${JSON.stringify(
+          config.host
+        )}`
+      );
+    }
+
+    const allowInsecure = process.env.SDE_ALLOW_INSECURE_HTTP === "true";
+    if (
+      parsed.protocol !== "https:" &&
+      !(allowInsecure && parsed.protocol === "http:")
+    ) {
+      throw new Error(
+        `[SDElements] Refusing to use non-https host (${parsed.protocol}). Set SDE_ALLOW_INSECURE_HTTP=true to allow http.`
+      );
+    }
+    if (parsed.username || parsed.password) {
+      throw new Error("[SDElements] Host URL must not include credentials.");
+    }
+    if (parsed.search || parsed.hash) {
+      throw new Error(
+        "[SDElements] Host URL must not include query or fragment."
+      );
+    }
+    if (parsed.pathname && parsed.pathname !== "/") {
+      throw new Error(
+        `[SDElements] Host URL must be an origin only (no path). Got path: ${parsed.pathname}`
+      );
+    }
+
+    const host = parsed.origin;
     this.host = host;
     this.baseUrl = `${host}/api/v2`;
     this.apiKey = config.apiKey;
@@ -1039,7 +1075,10 @@ export class SDElementsClient {
   // Reference: api_client.py uses project-diagrams/
 
   async listProjectDiagrams(projectId: number, params?: SDElementsQueryParams) {
-    const merged: SDElementsQueryParams = { ...(params || {}), project: projectId };
+    const merged: SDElementsQueryParams = {
+      ...(params || {}),
+      project: projectId,
+    };
     return this.get("project-diagrams/", merged);
   }
 
@@ -1095,7 +1134,11 @@ export class SDElementsClient {
         return { query: queryDef, data };
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        return { query: queryDef, data: null, error: `Failed to execute cube query: ${msg}` };
+        return {
+          query: queryDef,
+          data: null,
+          error: `Failed to execute cube query: ${msg}`,
+        };
       }
     }
     return queryDef;

@@ -5,8 +5,8 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SDElementsClient } from "../utils/apiClient.js";
-import { jsonToolResult } from "./_shared.js";
+import { SDElementsClient } from "../utils/apiClient";
+import { jsonToolResult } from "./_shared";
 
 /**
  * Register all generic API tools
@@ -43,7 +43,7 @@ export function registerGenericTools(
         endpoint,
         data as Record<string, unknown> | undefined,
         params as
-          | import("../utils/apiClient.js").SDElementsQueryParams
+          | import("../utils/apiClient").SDElementsQueryParams
           | undefined
       );
 
