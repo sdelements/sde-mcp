@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -17,13 +18,34 @@ const PACKAGE_VERSION: string = (() => {
   }
 })();
 
+let sentryInitialized = false;
+
+function wrapServerWithSentry(server: McpServer): McpServer {
+  const dsn = process.env.MCP_SENTRY_DSN?.trim();
+  if (!dsn) return server;
+
+  if (!sentryInitialized) {
+    Sentry.init({
+      dsn,
+      tracesSampleRate: 1.0,
+    });
+    sentryInitialized = true;
+  }
+
+  return Sentry.wrapMcpServerWithSentry(server, {
+    recordInputs: false,
+    recordOutputs: false,
+  });
+}
+
 export function createServer(
   creds?: import("./tools/index").SdeCredentials
 ): McpServer {
-  const server = new McpServer({
+  const baseServer = new McpServer({
     name: "sde-mcp",
     version: PACKAGE_VERSION,
   });
+  const server = wrapServerWithSentry(baseServer);
 
   registerAll(server, creds);
 
