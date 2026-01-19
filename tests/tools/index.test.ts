@@ -14,6 +14,7 @@ describe("tools/index registerAll", () => {
     vi.restoreAllMocks();
     delete process.env.SDE_HOST;
     delete process.env.SDE_API_KEY;
+    delete process.env.SDE_TOOLSET;
   });
 
   it("throws when required env vars are missing", () => {
@@ -29,6 +30,7 @@ describe("tools/index registerAll", () => {
   it("registers tools when env vars are present (and warms library answers best-effort)", () => {
     process.env.SDE_HOST = "https://example.test";
     process.env.SDE_API_KEY = "abc";
+    delete process.env.SDE_TOOLSET; // default = compact
 
     // Warmup will call fetch for library/answers. Stub it to avoid network.
     vi.stubGlobal(
@@ -46,6 +48,33 @@ describe("tools/index registerAll", () => {
 
     // Spot-check a few tool names from different modules
     const names = Array.from((server as CapturingServer).tools);
+    expect(names).toContain("project");
+    expect(names).toContain("application");
+    expect(names).toContain("business_unit");
+    expect(names).toContain("countermeasure");
+    expect(names).toContain("survey");
+    expect(names).toContain("api_request");
+  });
+
+  it("registers the legacy toolset when SDE_TOOLSET=full (excluding diagrams and reports)", () => {
+    process.env.SDE_HOST = "https://example.test";
+    process.env.SDE_API_KEY = "abc";
+    process.env.SDE_TOOLSET = "full";
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ results: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }) as unknown as typeof fetch
+    );
+
+    const server = new CapturingServer() as unknown as McpServer;
+    registerAll(server);
+
+    const names = Array.from((server as CapturingServer).tools);
     expect(names).toContain("list_projects");
     expect(names).toContain("list_applications");
     expect(names).toContain("list_business_units");
@@ -53,8 +82,10 @@ describe("tools/index registerAll", () => {
     expect(names).toContain("get_project_survey");
     expect(names).toContain("list_users");
     expect(names).toContain("list_scans");
-    expect(names).toContain("list_project_diagrams");
-    expect(names).toContain("list_advanced_reports");
     expect(names).toContain("api_request");
+
+    // Removed entirely
+    expect(names).not.toContain("list_project_diagrams");
+    expect(names).not.toContain("list_advanced_reports");
   });
 });

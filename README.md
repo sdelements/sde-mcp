@@ -126,16 +126,20 @@ npm run build
 
 ### Tools
 
-- **Projects / profiles / risk policies**: `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `create_project_from_code`, `list_profiles`, `list_risk_policies`, `get_risk_policy`
-- **Applications**: `list_applications`, `get_application`, `create_application`, `update_application`
-- **Business units**: `list_business_units`, `get_business_unit`
-- **Countermeasures**: `list_countermeasures`, `get_countermeasure`, `update_countermeasure`, `add_countermeasure_note`, `get_task_status_choices`
-- **Surveys**: `get_project_survey`, `get_survey_answers_for_project`, `update_project_survey`, `find_survey_answers`, `set_project_survey_by_text`, `add_survey_answers_by_text`, `remove_survey_answers_by_text`, `commit_survey_draft`, `add_survey_question_comment`
-- **Scans**: `list_scan_connections`, `scan_repository`, `get_scan_status`, `list_scans`
-- **Diagrams**: `list_project_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`, `delete_diagram`
-- **Reports / Cube**: `list_advanced_reports`, `get_advanced_report`, `update_advanced_report`, `run_advanced_report`, `create_advanced_report`, `execute_cube_query`
-- **Users**: `list_users`, `get_user`, `get_current_user`
-- **Generic**: `test_connection`, `api_request`
+- **Toolset selection**: default is **compact**. Set `SDE_TOOLSET=full` to expose the legacy toolset.
+- **Note**: diagrams and reporting tools are not exposed.
+- **Compact tools (default)**:
+  - `project`, `application`, `business_unit`, `survey`, `countermeasure`
+  - plus **Generic**: `test_connection`, `api_request`
+- **Legacy tools (when `SDE_TOOLSET=full`)**:
+  - **Projects / profiles / risk policies**: `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `create_project_from_code`, `list_profiles`, `list_risk_policies`, `get_risk_policy`
+  - **Applications**: `list_applications`, `get_application`, `create_application`, `update_application`
+  - **Business units**: `list_business_units`, `get_business_unit`
+  - **Countermeasures**: `list_countermeasures`, `get_countermeasure`, `update_countermeasure`, `add_countermeasure_note`, `get_task_status_choices`
+  - **Surveys**: `get_project_survey`, `get_survey_answers_for_project`, `update_project_survey`, `find_survey_answers`, `set_project_survey_by_text`, `add_survey_answers_by_text`, `remove_survey_answers_by_text`, `commit_survey_draft`, `add_survey_question_comment`
+  - **Scans**: `list_scan_connections`, `scan_repository`, `get_scan_status`, `list_scans`
+  - **Users**: `list_users`, `get_user`, `get_current_user`
+  - **Generic**: `test_connection`, `api_request`
 
 ### Notes
 

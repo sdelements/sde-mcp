@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { execSync } from "node:child_process";
 
 describe("src/index", () => {
   it("should be a valid entrypoint file", () => {
@@ -34,6 +35,13 @@ describe("src/index", () => {
     const __dirname = path.dirname(__filename);
     const distIndexPath = path.resolve(__dirname, "..", "dist", "index.js");
 
+    // Ensure dist exists for this assertion (CI/workspaces may not pre-build).
+    if (!existsSync(distIndexPath)) {
+      execSync("node scripts/build.mjs", {
+        cwd: path.resolve(__dirname, ".."),
+        stdio: "inherit",
+      });
+    }
     const content = readFileSync(distIndexPath, "utf8");
 
     // Verify it has the shebang

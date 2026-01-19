@@ -5,13 +5,12 @@ import type { SDElementsClient } from "../../src/utils/apiClient";
 import { registerApplicationTools } from "../../src/tools/applications";
 import { registerBusinessUnitTools } from "../../src/tools/businessUnits";
 import { registerCountermeasureTools } from "../../src/tools/countermeasures";
-import { registerDiagramTools } from "../../src/tools/diagrams";
 import { registerGenericTools } from "../../src/tools/generic";
 import { registerProjectTools } from "../../src/tools/project";
-import { registerReportTools } from "../../src/tools/reports";
 import { registerScanTools } from "../../src/tools/scans";
 import { registerSurveyTools } from "../../src/tools/surveys";
 import { registerUserTools } from "../../src/tools/users";
+import { registerCompactTools } from "../../src/tools/compact";
 
 type ToolResult = {
   content: Array<{ type: string; text: string }>;
@@ -44,7 +43,7 @@ function returned<T>(value: T) {
  *
  * If you add/remove tools, update this list so we detect accidental drift.
  */
-const EXPECTED_TOOL_NAMES = [
+const EXPECTED_TOOL_NAMES_FULL = [
   // applications
   "create_application",
   "get_application",
@@ -62,13 +61,6 @@ const EXPECTED_TOOL_NAMES = [
   "list_countermeasures",
   "update_countermeasure",
 
-  // diagrams
-  "create_diagram",
-  "delete_diagram",
-  "get_diagram",
-  "list_project_diagrams",
-  "update_diagram",
-
   // generic
   "api_request",
   "test_connection",
@@ -83,14 +75,6 @@ const EXPECTED_TOOL_NAMES = [
   "list_projects",
   "list_risk_policies",
   "update_project",
-
-  // reports
-  "create_advanced_report",
-  "execute_cube_query",
-  "get_advanced_report",
-  "list_advanced_reports",
-  "run_advanced_report",
-  "update_advanced_report",
 
   // scans
   "get_scan_status",
@@ -115,17 +99,30 @@ const EXPECTED_TOOL_NAMES = [
   "list_users",
 ].sort();
 
-function registerAllTools(server: TestMcpServer, client: SDElementsClient) {
+const EXPECTED_TOOL_NAMES_COMPACT = [
+  "project",
+  "application",
+  "business_unit",
+  "survey",
+  "countermeasure",
+  // generic
+  "api_request",
+  "test_connection",
+].sort();
+
+function registerFullTools(server: TestMcpServer, client: SDElementsClient) {
   registerApplicationTools(server as unknown as McpServer, client);
   registerBusinessUnitTools(server as unknown as McpServer, client);
   registerCountermeasureTools(server as unknown as McpServer, client);
-  registerDiagramTools(server as unknown as McpServer, client);
   registerGenericTools(server as unknown as McpServer, client);
   registerProjectTools(server as unknown as McpServer, client);
-  registerReportTools(server as unknown as McpServer, client);
   registerScanTools(server as unknown as McpServer, client);
   registerSurveyTools(server as unknown as McpServer, client);
   registerUserTools(server as unknown as McpServer, client);
+}
+
+function registerCompact(server: TestMcpServer, client: SDElementsClient) {
+  registerCompactTools(server as unknown as McpServer, client);
 }
 
 function makeStubClient(): SDElementsClient {
@@ -189,7 +186,7 @@ function makeStubClient(): SDElementsClient {
   }) as unknown as SDElementsClient;
 }
 
-const SMOKE_ARGS_BY_TOOL: Record<string, Record<string, unknown>> = {
+const SMOKE_ARGS_BY_TOOL_FULL: Record<string, Record<string, unknown>> = {
   // applications
   list_applications: {},
   get_application: { application_id: 1 },
@@ -215,13 +212,6 @@ const SMOKE_ARGS_BY_TOOL: Record<string, Record<string, unknown>> = {
   },
   get_task_status_choices: {},
 
-  // diagrams
-  list_project_diagrams: { project_id: 1 },
-  get_diagram: { diagram_id: 1 },
-  create_diagram: { project_id: 1, name: "Diag" },
-  update_diagram: { diagram_id: 1, name: "Diag2" },
-  delete_diagram: { diagram_id: 1 },
-
   // generic
   api_request: { method: "GET", endpoint: "users/me/" },
   test_connection: {},
@@ -237,28 +227,6 @@ const SMOKE_ARGS_BY_TOOL: Record<string, Record<string, unknown>> = {
   delete_project: { project_id: 1 },
   // This tool is complex; smoke the early-error path (no inputs) to ensure it returns JSON.
   create_project_from_code: {},
-
-  // reports
-  list_advanced_reports: {},
-  get_advanced_report: { report_id: 1 },
-  create_advanced_report: {
-    title: "R",
-    chart: "table",
-    query: {
-      schema: "application",
-      dimensions: ["Application.name"],
-      measures: ["Project.count"],
-    },
-  },
-  update_advanced_report: { report_id: 1, title: "R2" },
-  run_advanced_report: { report_id: 1 },
-  execute_cube_query: {
-    query: {
-      schema: "application",
-      dimensions: ["Application.name"],
-      measures: ["Project.count"],
-    },
-  },
 
   // scans
   list_scan_connections: {},
@@ -303,32 +271,76 @@ describe("tools (coverage)", () => {
     vi.restoreAllMocks();
   });
 
-  it("registers the complete expected tool set (no missing or extra tools)", () => {
+  it("registers the complete expected FULL tool set (no missing or extra tools)", () => {
     const server = new TestMcpServer();
     const client = makeStubClient();
-    registerAllTools(server, client);
+    registerFullTools(server, client);
 
     const actual = Array.from(server.tools.keys()).sort();
-    expect(actual).toEqual(EXPECTED_TOOL_NAMES);
+    expect(actual).toEqual(EXPECTED_TOOL_NAMES_FULL);
 
     // Also ensure we have no duplicates (Map would hide duplicates silently).
     expect(new Set(actual).size).toBe(actual.length);
   });
 
-  it("smoke-runs every tool handler and returns parseable JSON", async () => {
+  it("smoke-runs every FULL tool handler and returns parseable JSON", async () => {
     const server = new TestMcpServer();
     const client = makeStubClient();
-    registerAllTools(server, client);
+    registerFullTools(server, client);
 
-    for (const toolName of EXPECTED_TOOL_NAMES) {
+    for (const toolName of EXPECTED_TOOL_NAMES_FULL) {
       const tool = server.tools.get(toolName);
       expect(tool, `tool not registered: ${toolName}`).toBeTruthy();
 
-      const args = SMOKE_ARGS_BY_TOOL[toolName];
+      const args = SMOKE_ARGS_BY_TOOL_FULL[toolName];
       expect(args, `missing smoke args for tool: ${toolName}`).toBeTruthy();
 
       // Ensure every tool can be invoked at least once without throwing,
       // and that its response is JSON.
+      const res = await tool!.handler(args);
+      expect(
+        res.content?.[0]?.text,
+        `no response text for tool: ${toolName}`
+      ).toBeTruthy();
+      expect(
+        () => parseToolText(res),
+        `response is not JSON for tool: ${toolName}`
+      ).not.toThrow();
+    }
+  });
+
+  it("registers the complete expected COMPACT tool set (no missing or extra tools)", () => {
+    const server = new TestMcpServer();
+    const client = makeStubClient();
+    registerCompact(server, client);
+
+    const actual = Array.from(server.tools.keys()).sort();
+    expect(actual).toEqual(EXPECTED_TOOL_NAMES_COMPACT);
+    expect(new Set(actual).size).toBe(actual.length);
+  });
+
+  it("smoke-runs every COMPACT tool handler and returns parseable JSON", async () => {
+    const server = new TestMcpServer();
+    const client = makeStubClient();
+    registerCompact(server, client);
+
+    const SMOKE_ARGS_BY_TOOL_COMPACT: Record<string, Record<string, unknown>> = {
+      project: { op: "list" },
+      application: { op: "list" },
+      business_unit: { op: "list" },
+      survey: { op: "getProjectSurvey", project_id: 1 },
+      countermeasure: { op: "statusChoices" },
+      api_request: { method: "GET", endpoint: "users/me/" },
+      test_connection: {},
+    };
+
+    for (const toolName of EXPECTED_TOOL_NAMES_COMPACT) {
+      const tool = server.tools.get(toolName);
+      expect(tool, `tool not registered: ${toolName}`).toBeTruthy();
+
+      const args = SMOKE_ARGS_BY_TOOL_COMPACT[toolName];
+      expect(args, `missing smoke args for tool: ${toolName}`).toBeTruthy();
+
       const res = await tool!.handler(args);
       expect(
         res.content?.[0]?.text,
