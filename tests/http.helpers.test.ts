@@ -40,7 +40,11 @@ describe("src/http helpers", () => {
     expect(__test__.normalizeSdeHost(" https://example.test/ ")).toBe(
       "https://example.test"
     );
-    expect(__test__.normalizeSdeHost("http://example.test/")).toBe(
+    expect(
+      __test__.normalizeSdeHost("http://example.test/", {
+        allowInsecure: true,
+      })
+    ).toBe(
       "http://example.test"
     );
   });

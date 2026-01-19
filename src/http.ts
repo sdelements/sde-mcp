@@ -15,7 +15,10 @@ type SdeCreds = {
   apiKey: string;
 };
 
-function normalizeSdeHost(value: string): string | null {
+function normalizeSdeHost(
+  value: string,
+  options?: { allowInsecure?: boolean }
+): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
@@ -26,7 +29,8 @@ function normalizeSdeHost(value: string): string | null {
     return null;
   }
 
-  const allowInsecure = process.env.SDE_ALLOW_INSECURE_HTTP === "true";
+  const allowInsecure =
+    options?.allowInsecure ?? process.env.SDE_ALLOW_INSECURE_HTTP === "true";
   if (
     parsed.protocol !== "https:" &&
     !(allowInsecure && parsed.protocol === "http:")
