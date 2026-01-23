@@ -682,7 +682,7 @@ export function registerCompactTools(
     {
       title: "Project Survey",
       description:
-        "Survey operations (get structure, get selected answers, update by IDs, mutate by text, draft operations, commit draft, add question comment).",
+        "Survey operations (get structure, get selected answers, update by IDs, mutate by text, draft operations, commit draft, comments).",
       inputSchema: z.object({
         op: z
           .enum([
@@ -698,6 +698,10 @@ export function registerCompactTools(
             "mutateByText",
             "commitDraft",
             "addQuestionComment",
+            "listComments",
+            "getComment",
+            "createComment",
+            "updateComment",
           ])
           .describe("Operation to perform"),
         project_id: z.number().optional().describe("Project ID"),
@@ -732,6 +736,11 @@ export function registerCompactTools(
           .describe("Profile ID to clone answers from"),
         question_id: z.string().optional().describe("Survey question ID"),
         comment: z.string().optional().describe("Comment text"),
+        comment_id: z.number().optional().describe("Survey comment ID"),
+        pinned: z
+          .boolean()
+          .optional()
+          .describe("Pin or unpin the comment"),
       }),
     },
     async (args) => {
@@ -1054,8 +1063,69 @@ export function registerCompactTools(
             await client.addSurveyQuestionComment(
               args.project_id,
               args.question_id,
-              args.comment
+              args.comment,
+              args.pinned
             )
+          );
+
+        case "listComments":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=listComments" });
+          }
+          return jsonToolResult(
+            await client.listSurveyComments(
+              args.project_id,
+              args.question_id ? { question: args.question_id } : undefined
+            )
+          );
+
+        case "getComment":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=getComment" });
+          }
+          if (args.comment_id === undefined) {
+            return jsonToolResult({ error: "comment_id is required for op=getComment" });
+          }
+          return jsonToolResult(
+            await client.getSurveyComment(args.project_id, args.comment_id)
+          );
+
+        case "createComment":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=createComment" });
+          }
+          if (!args.question_id) {
+            return jsonToolResult({ error: "question_id is required for op=createComment" });
+          }
+          if (!args.comment) {
+            return jsonToolResult({ error: "comment is required for op=createComment" });
+          }
+          return jsonToolResult(
+            await client.addSurveyQuestionComment(
+              args.project_id,
+              args.question_id,
+              args.comment,
+              args.pinned
+            )
+          );
+
+        case "updateComment":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=updateComment" });
+          }
+          if (args.comment_id === undefined) {
+            return jsonToolResult({ error: "comment_id is required for op=updateComment" });
+          }
+          if (args.comment === undefined && args.pinned === undefined) {
+            return jsonToolResult({
+              error: "comment or pinned is required for op=updateComment",
+            });
+          }
+          return jsonToolResult(
+            await client.updateSurveyComment(args.project_id, args.comment_id, {
+              text: args.comment,
+              pinned: args.pinned,
+            })
           );
       }
     }

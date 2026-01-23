@@ -544,7 +544,8 @@ export class SDElementsClient {
   async addSurveyQuestionComment(
     projectId: number,
     questionId: string,
-    comment: string
+    comment: string,
+    pinned?: boolean
   ): Promise<{
     success: boolean;
     project_id: number;
@@ -560,7 +561,7 @@ export class SDElementsClient {
     try {
       const result = await this.post<Record<string, unknown>>(
         `projects/${projectId}/survey/comments/`,
-        { question: questionId, text: comment }
+        { question: questionId, text: comment, pinned }
       );
 
       const authorObj = (result as { author?: { email?: string } }).author;
@@ -586,6 +587,28 @@ export class SDElementsClient {
           "Verify the question ID exists in the survey. You can find question IDs by calling get_project_survey.",
       };
     }
+  }
+
+  async listSurveyComments(
+    projectId: number,
+    params?: SDElementsQueryParams
+  ): Promise<unknown> {
+    return this.get(`projects/${projectId}/survey/comments/`, params);
+  }
+
+  async getSurveyComment(
+    projectId: number,
+    commentId: number
+  ): Promise<unknown> {
+    return this.get(`projects/${projectId}/survey/comments/${commentId}/`);
+  }
+
+  async updateSurveyComment(
+    projectId: number,
+    commentId: number,
+    data: { text?: string; pinned?: boolean }
+  ): Promise<unknown> {
+    return this.patch(`projects/${projectId}/survey/comments/${commentId}/`, data);
   }
 
   /**

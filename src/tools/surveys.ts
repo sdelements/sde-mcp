@@ -451,7 +451,7 @@ export function registerSurveyTools(
     {
       title: "Add Survey Question Comment",
       description:
-        "Add a comment to a survey question. Use this to explain why specific answers were selected for a question, providing context and justification for survey answer choices.\n\nThis is especially useful when setting project survey answers to document the reasoning behind answer selections.\n\nExample: Add a comment to question Q1 in project 123 explaining that Python was selected because the project uses Django.",
+        "Add a comment to a survey question. Use this to explain why specific answers were selected for a question, providing context and justification for survey answer choices. Optionally pin the comment.\n\nThis is especially useful when setting project survey answers to document the reasoning behind answer selections.\n\nExample: Add a comment to question Q1 in project 123 explaining that Python was selected because the project uses Django.",
       inputSchema: z.object({
         project_id: z.number().describe("The project ID"),
         question_id: z
@@ -464,13 +464,18 @@ export function registerSurveyTools(
           .describe(
             "The comment text explaining why answers were selected for this question"
           ),
+        pinned: z
+          .boolean()
+          .optional()
+          .describe("Whether to pin the comment (optional)"),
       }),
     },
-    async ({ project_id, question_id, comment }) => {
+    async ({ project_id, question_id, comment, pinned }) => {
       const result = await client.addSurveyQuestionComment(
         project_id,
         question_id,
-        comment
+        comment,
+        pinned
       );
 
       return jsonToolResult(result);
