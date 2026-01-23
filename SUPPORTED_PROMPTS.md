@@ -182,6 +182,15 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - Find threats related to SQL injection
 - Search library components for "API gateway"
 - Look up weaknesses about broken access control
+- List available project profiles
+- Find profiles for mobile applications
+- List all risk policies
+- Show me all available risk policies
+- What risk policies are available?
+- Get me a list of risk policies
+- Get risk policy 5
+- Show me details for risk policy 3
+- What is risk policy 2?
 
 ---
 
@@ -217,27 +226,6 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - What is project 789?
 - What's the security posture of project 123?
 - What's the status of project 123?
-
-### list_profiles
-
-- List all profiles
-- Show me all available profiles
-- Show me the available project profiles
-- What profiles are available?
-- What security profiles are available?
-
-### list_risk_policies
-
-- List all risk policies
-- Show me all available risk policies
-- What risk policies are available?
-- Get me a list of risk policies
-
-### get_risk_policy
-
-- Get risk policy 5
-- Show me details for risk policy 3
-- What is risk policy 2?
 
 ### list_projects
 

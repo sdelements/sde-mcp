@@ -74,7 +74,7 @@ describe("project tool handlers (unit)", () => {
     const res = await tool.handler({ project_id: 1, risk_policy: "abc" });
     const body = parseToolText<{ error: string; suggestion?: string }>(res);
     expect(body.error).toMatch(/risk_policy must be an integer ID/i);
-    expect(body.suggestion).toMatch(/list_risk_policies/i);
+    expect(body.suggestion).toMatch(/library_search/i);
   });
 });
 

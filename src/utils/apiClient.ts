@@ -209,7 +209,9 @@ export type SDElementsLibraryType =
   | "threats"
   | "components"
   | "weaknesses"
-  | "problems";
+  | "problems"
+  | "profiles"
+  | "risk_policies";
 
 // --- Utility Functions ---
 
@@ -743,6 +745,12 @@ export class SDElementsClient {
     type: SDElementsLibraryType,
     params?: SDElementsQueryParams
   ): Promise<SDElementsPaginatedResponse<unknown>> {
+    if (type === "profiles") {
+      return this.get<SDElementsPaginatedResponse<unknown>>("profiles/", params);
+    }
+    if (type === "risk_policies") {
+      return this.get<SDElementsPaginatedResponse<unknown>>("risk-policies/", params);
+    }
     const endpointType =
       type === "countermeasures" || type === "tasks"
         ? "tasks"

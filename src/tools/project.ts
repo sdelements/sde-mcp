@@ -115,61 +115,6 @@ export function registerProjectTools(
     }
   );
 
-  // List profiles
-  server.registerTool(
-    "list_profiles",
-    {
-      title: "List Profiles",
-      description: "List all available profiles in SD Elements",
-      inputSchema: z.object({
-        page_size: z.number().optional().describe("Number of results per page"),
-      }),
-    },
-    async ({ page_size }) => {
-      const params = page_size ? { page_size } : {};
-      const result = await client.listProfiles(params);
-
-      return jsonToolResult(result);
-    }
-  );
-
-  // List risk policies
-  server.registerTool(
-    "list_risk_policies",
-    {
-      title: "List Risk Policies",
-      description: "List all available risk policies in SD Elements",
-      inputSchema: z.object({
-        page_size: z.number().optional().describe("Number of results per page"),
-      }),
-    },
-    async ({ page_size }) => {
-      const params = page_size ? { page_size } : {};
-      const result = await client.listRiskPolicies(params);
-
-      return jsonToolResult(result);
-    }
-  );
-
-  // Get risk policy
-  server.registerTool(
-    "get_risk_policy",
-    {
-      title: "Get Risk Policy",
-      description: "Get details of a specific risk policy",
-      inputSchema: z.object({
-        risk_policy_id: z.number().describe("ID of the risk policy"),
-        page_size: z.number().optional().describe("Number of results per page"),
-      }),
-    },
-    async ({ risk_policy_id, page_size }) => {
-      const params = page_size ? { page_size } : {};
-      const result = await client.getRiskPolicy(risk_policy_id, params);
-
-      return jsonToolResult(result);
-    }
-  );
-
   // Create project
   server.registerTool(
     "create_project",
@@ -260,7 +205,7 @@ export function registerProjectTools(
     {
       title: "Update Project",
       description:
-        "Update an existing project (name, description, status, or risk_policy). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for 'archive', 'delete', or 'remove' - use delete_project instead.\n\nIMPORTANT: risk_policy must be the numeric ID of the risk policy (e.g., 1, 2, 3), not the name. Use list_risk_policies to find the correct ID.",
+        "Update an existing project (name, description, status, or risk_policy). Use when user says 'update', 'change', 'modify', or 'rename'. Do NOT use for archiving or deletion in this toolset.\n\nIMPORTANT: risk_policy must be the numeric ID of the risk policy (e.g., 1, 2, 3), not the name. Use library_search with type risk_policies to find the correct ID.",
       inputSchema: z.object({
         project_id: z.number().describe("ID of the project to update"),
         name: z.string().optional().describe("New name for the project"),
@@ -282,7 +227,7 @@ export function registerProjectTools(
             return jsonToolResult({
               error: `risk_policy must be an integer ID, got string that cannot be converted: ${risk_policy}`,
               suggestion:
-                "Use list_risk_policies to find the correct risk policy ID (numeric value)",
+                "Use library_search with type risk_policies to find the correct risk policy ID (numeric value)",
             });
           }
           resolvedRiskPolicy = parsed;
@@ -292,7 +237,7 @@ export function registerProjectTools(
           return jsonToolResult({
             error: `risk_policy must be an integer ID, got ${typeof risk_policy}: ${risk_policy}`,
             suggestion:
-              "Use list_risk_policies to find the correct risk policy ID (numeric value)",
+              "Use library_search with type risk_policies to find the correct risk policy ID (numeric value)",
           });
         }
       }
@@ -323,7 +268,7 @@ export function registerProjectTools(
           return jsonToolResult({
             error: `Failed to update risk_policy: ${errorMsg}`,
             suggestion:
-              "Use list_risk_policies to verify the risk policy ID is correct.",
+              "Use library_search with type risk_policies to verify the risk policy ID is correct.",
           });
         }
         throw error;

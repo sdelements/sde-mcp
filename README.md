@@ -129,10 +129,11 @@ npm run build
 - **Toolset selection**: default is **compact**. Set `SDE_TOOLSET=full` to expose the legacy toolset.
 - **Note**: diagrams and reporting tools are not exposed.
 - **Compact tools (default)**:
-  - `project`, `application`, `business_unit`, `survey`, `project_countermeasure`, `library_search`
+  - `project`, `application`, `business_unit`, `project_survey`, `project_countermeasure`, `library_search`
   - plus **Generic**: `test_connection`, `api_request`
 - **Legacy tools (when `SDE_TOOLSET=full`)**:
-  - **Projects / profiles / risk policies**: `list_projects`, `get_project`, `create_project`, `update_project`, `create_project_from_code`, `list_profiles`, `list_risk_policies`, `get_risk_policy`
+  - **Projects**: `list_projects`, `get_project`, `create_project`, `update_project`, `create_project_from_code`
+  - **Library search**: `library_search` (supports countermeasures, threats, components, weaknesses, profiles, risk policies)
   - **Applications**: `list_applications`, `get_application`, `create_application`, `update_application`
   - **Business units**: `list_business_units`, `get_business_unit`, `create_business_unit`, `update_business_unit`
   - **Countermeasures**: `list_countermeasures`, `get_countermeasure`, `update_countermeasure`, `add_countermeasure_note`, `get_task_status_choices`

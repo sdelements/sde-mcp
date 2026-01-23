@@ -75,10 +75,7 @@ const EXPECTED_TOOL_NAMES_FULL = [
   "create_project",
   "create_project_from_code",
   "get_project",
-  "get_risk_policy",
-  "list_profiles",
   "list_projects",
-  "list_risk_policies",
   "update_project",
 
   // scans
@@ -108,7 +105,7 @@ const EXPECTED_TOOL_NAMES_COMPACT = [
   "project",
   "application",
   "business_unit",
-  "survey",
+  "project_survey",
   "project_countermeasure",
   "library_search",
   // generic
@@ -236,9 +233,6 @@ const SMOKE_ARGS_BY_TOOL_FULL: Record<string, Record<string, unknown>> = {
   // projects
   list_projects: {},
   get_project: { project_id: 1 },
-  list_profiles: {},
-  list_risk_policies: {},
-  get_risk_policy: { risk_policy_id: 1 },
   create_project: { application_id: 1, name: "Proj", description: "d" },
   update_project: { project_id: 1, name: "Proj2" },
   // This tool is complex; smoke the early-error path (no inputs) to ensure it returns JSON.
@@ -344,7 +338,7 @@ describe("tools (coverage)", () => {
       project: { op: "list" },
       application: { op: "list" },
       business_unit: { op: "list" },
-      survey: { op: "getProjectSurvey", project_id: 1 },
+      project_survey: { op: "getProjectSurvey", project_id: 1 },
       project_countermeasure: { op: "statusChoices" },
       library_search: { query: "auth" },
       api_request: { method: "GET", endpoint: "users/me/" },

@@ -132,7 +132,7 @@ export function registerCompactTools(
     {
       title: "Project",
       description:
-        "Project operations (list/get/create/update/delete, profiles, risk policies).",
+        "Project operations (list/get/create/update/delete, profiles).",
       // NOTE: We intentionally avoid z.discriminatedUnion() here because some MCP
       // clients (via SDK JSON schema conversion) fail to display any arguments.
       // Use a single object with an op enum + optional fields, and validate per-op
@@ -144,9 +144,6 @@ export function registerCompactTools(
             "get",
             "create",
             "update",
-            "listProfiles",
-            "listRiskPolicies",
-            "getRiskPolicy",
           ])
           .describe("Operation to perform"),
 
@@ -199,7 +196,6 @@ export function registerCompactTools(
           .union([z.number(), z.string()])
           .optional()
           .describe("Risk policy ID (numeric)"),
-        risk_policy_id: z.number().optional().describe("Risk policy ID"),
 
         // create/update fields from SD Elements docs
         locked: z
@@ -274,23 +270,6 @@ export function registerCompactTools(
             expand: args.expand,
           });
           return jsonToolResult(await client.getProject(args.project_id, params));
-        }
-        case "listProfiles": {
-          const params = args.page_size ? { page_size: args.page_size } : {};
-          return jsonToolResult(await client.listProfiles(params));
-        }
-        case "listRiskPolicies": {
-          const params = args.page_size ? { page_size: args.page_size } : {};
-          return jsonToolResult(await client.listRiskPolicies(params));
-        }
-        case "getRiskPolicy": {
-          if (args.risk_policy_id === undefined) {
-            return jsonToolResult({
-              error: "risk_policy_id is required for op=getRiskPolicy",
-            });
-          }
-          const params = args.page_size ? { page_size: args.page_size } : {};
-          return jsonToolResult(await client.getRiskPolicy(args.risk_policy_id, params));
         }
         case "create": {
           if (args.application_id === undefined) {
@@ -375,7 +354,8 @@ export function registerCompactTools(
               if (isNaN(parsed)) {
                 return jsonToolResult({
                   error: `risk_policy must be an integer ID, got string that cannot be converted: ${args.risk_policy}`,
-                  suggestion: "Use op=listRiskPolicies to find the correct ID.",
+                  suggestion:
+                    "Use library_search with type risk_policies to find the correct ID.",
                 });
               }
               resolvedRiskPolicy = parsed;
@@ -698,9 +678,9 @@ export function registerCompactTools(
 
   // ---- surveys ----
   server.registerTool(
-    "survey",
+    "project_survey",
     {
-      title: "Survey",
+      title: "Project Survey",
       description:
         "Survey operations (get structure, get selected answers, update by IDs, mutate by text, commit draft, add question comment).",
       inputSchema: z.object({
