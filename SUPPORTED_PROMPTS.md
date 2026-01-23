@@ -162,6 +162,17 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 
 ---
 
+## Library
+
+### library_search
+
+- Search the library for authentication countermeasures
+- Find threats related to SQL injection
+- Search library components for "API gateway"
+- Look up weaknesses about broken access control
+
+---
+
 ## Projects
 
 ### create_project

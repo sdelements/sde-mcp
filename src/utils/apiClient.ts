@@ -203,6 +203,14 @@ export interface SDElementsSurveyDraft {
   [key: string]: unknown;
 }
 
+export type SDElementsLibraryType =
+  | "countermeasures"
+  | "tasks"
+  | "threats"
+  | "components"
+  | "weaknesses"
+  | "problems";
+
 // --- Utility Functions ---
 
 /**
@@ -730,6 +738,22 @@ export class SDElementsClient {
 
   // --- Library & Search ---
   // Reference: https://docs.sdelements.com/master/api/#library-answers
+
+  async listLibraryItems(
+    type: SDElementsLibraryType,
+    params?: SDElementsQueryParams
+  ): Promise<SDElementsPaginatedResponse<unknown>> {
+    const endpointType =
+      type === "countermeasures" || type === "tasks"
+        ? "tasks"
+        : type === "weaknesses" || type === "problems"
+          ? "problems"
+          : type;
+    return this.get<SDElementsPaginatedResponse<unknown>>(
+      `library/${endpointType}/`,
+      params
+    );
+  }
 
   async loadLibraryAnswers(): Promise<void> {
     try {

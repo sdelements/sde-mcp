@@ -6,6 +6,7 @@ import { registerApplicationTools } from "../../src/tools/applications";
 import { registerBusinessUnitTools } from "../../src/tools/businessUnits";
 import { registerCountermeasureTools } from "../../src/tools/countermeasures";
 import { registerGenericTools } from "../../src/tools/generic";
+import { registerLibraryTools } from "../../src/tools/library";
 import { registerProjectTools } from "../../src/tools/project";
 import { registerScanTools } from "../../src/tools/scans";
 import { registerSurveyTools } from "../../src/tools/surveys";
@@ -65,6 +66,9 @@ const EXPECTED_TOOL_NAMES_FULL = [
   "api_request",
   "test_connection",
 
+  // library
+  "library_search",
+
   // projects
   "create_project",
   "create_project_from_code",
@@ -105,6 +109,7 @@ const EXPECTED_TOOL_NAMES_COMPACT = [
   "business_unit",
   "survey",
   "countermeasure",
+  "library_search",
   // generic
   "api_request",
   "test_connection",
@@ -115,6 +120,7 @@ function registerFullTools(server: TestMcpServer, client: SDElementsClient) {
   registerBusinessUnitTools(server as unknown as McpServer, client);
   registerCountermeasureTools(server as unknown as McpServer, client);
   registerGenericTools(server as unknown as McpServer, client);
+  registerLibraryTools(server as unknown as McpServer, client);
   registerProjectTools(server as unknown as McpServer, client);
   registerScanTools(server as unknown as McpServer, client);
   registerSurveyTools(server as unknown as McpServer, client);
@@ -156,6 +162,7 @@ function makeStubClient(): SDElementsClient {
     commitSurveyDraft: resolved({ ok: true }),
     addSurveyQuestionComment: resolved({ success: true }),
     getLibraryAnswersCache: returned([]),
+    listLibraryItems: resolved({ results: [] }),
 
     // task status resolution
     listTaskStatuses: resolved({
@@ -215,6 +222,9 @@ const SMOKE_ARGS_BY_TOOL_FULL: Record<string, Record<string, unknown>> = {
   // generic
   api_request: { method: "GET", endpoint: "users/me/" },
   test_connection: {},
+
+  // library
+  library_search: { query: "auth", types: ["countermeasures"] },
 
   // projects
   list_projects: {},
@@ -330,6 +340,7 @@ describe("tools (coverage)", () => {
       business_unit: { op: "list" },
       survey: { op: "getProjectSurvey", project_id: 1 },
       countermeasure: { op: "statusChoices" },
+      library_search: { query: "auth" },
       api_request: { method: "GET", endpoint: "users/me/" },
       test_connection: {},
     };

@@ -15,6 +15,7 @@ import {
 } from "../utils/apiClient";
 import { buildParams, jsonToolResult } from "./_shared";
 import { registerGenericTools } from "./generic";
+import { registerLibraryTools } from "./library";
 
 /**
  * Detect profile from project name/description context.
@@ -939,5 +940,6 @@ export function registerCompactTools(
 
   // Keep the generic tools (api_request + test_connection) available in compact mode.
   registerGenericTools(server, client);
+  registerLibraryTools(server, client);
 }
 

@@ -9,6 +9,7 @@ import { registerUserTools } from "./users";
 import { registerScanTools } from "./scans";
 import { registerGenericTools } from "./generic";
 import { registerCompactTools } from "./compact";
+import { registerLibraryTools } from "./library";
 
 export type SdeCredentials = {
   host: string;
@@ -61,6 +62,7 @@ export function registerAll(server: McpServer, creds?: SdeCredentials): void {
     registerScanTools(server, client);
     // Diagrams + reporting intentionally not registered.
     registerGenericTools(server, client);
+    registerLibraryTools(server, client);
     return;
   }
 
