@@ -331,24 +331,6 @@ export function registerProjectTools(
     }
   );
 
-  // Delete project
-  server.registerTool(
-    "delete_project",
-    {
-      title: "Delete Project",
-      description:
-        "Delete a project. Use when user says 'delete', 'remove', 'archive', or wants to permanently remove a project. Do NOT use update_project for archiving.",
-      inputSchema: z.object({
-        project_id: z.number().describe("ID of the project to delete"),
-      }),
-    },
-    async ({ project_id }) => {
-      const result = await client.deleteProject(project_id);
-
-      return jsonToolResult(result);
-    }
-  );
-
   // Create project from code
   server.registerTool(
     "create_project_from_code",

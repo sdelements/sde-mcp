@@ -52,8 +52,10 @@ const EXPECTED_TOOL_NAMES_FULL = [
   "update_application",
 
   // business units
+  "create_business_unit",
   "get_business_unit",
   "list_business_units",
+  "update_business_unit",
 
   // countermeasures
   "add_countermeasure_note",
@@ -72,7 +74,6 @@ const EXPECTED_TOOL_NAMES_FULL = [
   // projects
   "create_project",
   "create_project_from_code",
-  "delete_project",
   "get_project",
   "get_risk_policy",
   "list_profiles",
@@ -108,7 +109,7 @@ const EXPECTED_TOOL_NAMES_COMPACT = [
   "application",
   "business_unit",
   "survey",
-  "countermeasure",
+  "project_countermeasure",
   "library_search",
   // generic
   "api_request",
@@ -173,6 +174,10 @@ function makeStubClient(): SDElementsClient {
     executeCubeQuery: resolved({ data: [] }),
     runAdvancedReport: resolved({ query: { id: 1 }, data: [] }),
 
+    // business units
+    createBusinessUnit: resolved({ id: 1, name: "BU" }),
+    updateBusinessUnit: resolved({ id: 1, name: "BU Updated" }),
+
     // scanning
     listTeamOnboardingConnections: resolved({ results: [] }),
     createTeamOnboardingScan: resolved({ id: 1 }),
@@ -203,6 +208,8 @@ const SMOKE_ARGS_BY_TOOL_FULL: Record<string, Record<string, unknown>> = {
   // business units
   list_business_units: {},
   get_business_unit: { business_unit_id: 1 },
+  create_business_unit: { name: "BU" },
+  update_business_unit: { business_unit_id: 1, name: "BU Updated" },
 
   // countermeasures
   list_countermeasures: { project_id: 1 },
@@ -234,7 +241,6 @@ const SMOKE_ARGS_BY_TOOL_FULL: Record<string, Record<string, unknown>> = {
   get_risk_policy: { risk_policy_id: 1 },
   create_project: { application_id: 1, name: "Proj", description: "d" },
   update_project: { project_id: 1, name: "Proj2" },
-  delete_project: { project_id: 1 },
   // This tool is complex; smoke the early-error path (no inputs) to ensure it returns JSON.
   create_project_from_code: {},
 
@@ -339,7 +345,7 @@ describe("tools (coverage)", () => {
       application: { op: "list" },
       business_unit: { op: "list" },
       survey: { op: "getProjectSurvey", project_id: 1 },
-      countermeasure: { op: "statusChoices" },
+      project_countermeasure: { op: "statusChoices" },
       library_search: { query: "auth" },
       api_request: { method: "GET", endpoint: "users/me/" },
       test_connection: {},

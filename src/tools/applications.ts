@@ -61,7 +61,7 @@ export function registerApplicationTools(
     "create_application",
     {
       title: "Create Application",
-      description: "Create a new application",
+      description: "Create a new application. Client should ask for confirmation before running.",
       inputSchema: z.object({
         name: z.string().describe("Name of the application"),
         business_unit_id: z.number().describe("ID of the business unit"),
@@ -92,7 +92,8 @@ export function registerApplicationTools(
     "update_application",
     {
       title: "Update Application",
-      description: "Update an existing application",
+      description:
+        "Update an existing application. Client should ask for confirmation before running.",
       inputSchema: z.object({
         application_id: z.number().describe("ID of the application to update"),
         name: z.string().optional().describe("New name for the application"),

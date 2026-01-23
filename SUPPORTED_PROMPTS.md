@@ -39,12 +39,24 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 
 ## Business Units
 
+### create_business_unit
+
+- Create a new business unit called Platform
+- Add a business unit for Security with default risk policy 29
+- Create business unit named API Team
+
 ### get_business_unit
 
 - Get business unit 123
 - Get business unit information for ID 123
 - Show me details for business unit 123
 - What's business unit 123?
+
+### update_business_unit
+
+- Update business unit 123 name to Platform
+- Modify business unit 123 to include all users
+- Update business unit 123 default risk policy to 29
 
 ### list_business_units
 
@@ -194,13 +206,6 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - Initialize a project from the repository scan
 - Scan repository and create project
 - Set up a project by scanning the code repository
-
-### delete_project
-
-- Archive project 456 as it's been completed
-- Delete project 456
-- Remove project 456 from the system
-- Remove the deprecated project 456
 
 ### get_project
 

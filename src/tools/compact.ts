@@ -144,7 +144,6 @@ export function registerCompactTools(
             "get",
             "create",
             "update",
-            "delete",
             "listProfiles",
             "listRiskPolicies",
             "getRiskPolicy",
@@ -410,13 +409,6 @@ export function registerCompactTools(
 
           return jsonToolResult(await client.updateProject(args.project_id, data));
         }
-        case "delete":
-          if (args.project_id === undefined) {
-            return jsonToolResult({
-              error: "project_id is required for op=delete",
-            });
-          }
-          return jsonToolResult(await client.deleteProject(args.project_id));
       }
     }
   );
@@ -426,7 +418,8 @@ export function registerCompactTools(
     "application",
     {
       title: "Application",
-      description: "Application operations (list/get/create/update).",
+      description:
+        "Application operations (list/get/create/update). Client should ask for confirmation before create/update.",
       inputSchema: z.object({
         op: z.enum(["list", "get", "create", "update"]).describe("Operation to perform"),
         page_size: z.number().optional().describe("Number of results per page"),
@@ -496,13 +489,43 @@ export function registerCompactTools(
     "business_unit",
     {
       title: "Business Unit",
-      description: "Business unit operations (list/get).",
+      description:
+        "Business unit operations (list/get/create/update). Client should ask for confirmation before create/update.",
       inputSchema: z.object({
-        op: z.enum(["list", "get"]).describe("Operation to perform"),
+        op: z.enum(["list", "get", "create", "update"]).describe("Operation to perform"),
         page_size: z.number().optional().describe("Number of results per page"),
         include: z.string().optional().describe("Related resources to include"),
         expand: z.string().optional().describe("Fields to expand"),
         business_unit_id: z.number().optional().describe("Business unit ID"),
+        name: z.string().optional().describe("Business unit name"),
+        users: z
+          .array(z.object({ email: z.string() }))
+          .optional()
+          .describe("Users to include: [{email}]"),
+        groups: z
+          .array(z.object({ id: z.string() }))
+          .optional()
+          .describe("Groups to include: [{id}]"),
+        default_users: z
+          .array(z.object({ email: z.string(), role: z.string().optional() }))
+          .optional()
+          .describe("Default user roles: [{email, role}]"),
+        default_groups: z
+          .array(z.object({ id: z.string(), role: z.string().optional() }))
+          .optional()
+          .describe("Default group roles: [{id, role}]"),
+        all_users: z
+          .boolean()
+          .optional()
+          .describe("Whether the business unit includes all users"),
+        persist_phases: z
+          .boolean()
+          .optional()
+          .describe("Persist phases for tasks/weaknesses in this business unit"),
+        default_risk_policy: z
+          .number()
+          .optional()
+          .describe("Default risk policy ID for this business unit"),
       }),
     },
     async (args) => {
@@ -522,6 +545,49 @@ export function registerCompactTools(
             });
           }
           return jsonToolResult(await client.getBusinessUnit(args.business_unit_id));
+        case "create": {
+          if (!args.name) {
+            return jsonToolResult({ error: "name is required for op=create" });
+          }
+          const data: Record<string, unknown> = { name: args.name };
+          if (args.users) data.users = args.users;
+          if (args.groups) data.groups = args.groups;
+          if (args.default_users) data.default_users = args.default_users;
+          if (args.default_groups) data.default_groups = args.default_groups;
+          if (args.all_users !== undefined) data.all_users = args.all_users;
+          if (args.persist_phases !== undefined)
+            data.persist_phases = args.persist_phases;
+          if (args.default_risk_policy !== undefined)
+            data.default_risk_policy = args.default_risk_policy;
+          return jsonToolResult(await client.createBusinessUnit(data));
+        }
+        case "update": {
+          if (args.business_unit_id === undefined) {
+            return jsonToolResult({
+              error: "business_unit_id is required for op=update",
+            });
+          }
+          const data: Record<string, unknown> = {};
+          if (args.name !== undefined) data.name = args.name;
+          if (args.users !== undefined) data.users = args.users;
+          if (args.groups !== undefined) data.groups = args.groups;
+          if (args.default_users !== undefined) data.default_users = args.default_users;
+          if (args.default_groups !== undefined) data.default_groups = args.default_groups;
+          if (args.all_users !== undefined) data.all_users = args.all_users;
+          if (args.persist_phases !== undefined)
+            data.persist_phases = args.persist_phases;
+          if (args.default_risk_policy !== undefined)
+            data.default_risk_policy = args.default_risk_policy;
+          if (Object.keys(data).length === 0) {
+            return jsonToolResult({
+              error:
+                "No update data provided. Specify at least one field (name, users, groups, default_users, default_groups, all_users, persist_phases, default_risk_policy).",
+            });
+          }
+          return jsonToolResult(
+            await client.updateBusinessUnit(args.business_unit_id, data)
+          );
+        }
       }
     }
   );
@@ -530,10 +596,11 @@ export function registerCompactTools(
 
   // ---- countermeasures ----
   server.registerTool(
-    "countermeasure",
+    "project_countermeasure",
     {
-      title: "Countermeasure",
-      description: "Countermeasure operations (list/get/update/addNote/statusChoices).",
+      title: "Project Countermeasure",
+      description:
+        "Project countermeasure operations (list/get/update/addNote/statusChoices). Alias: task.",
       inputSchema: z.object({
         op: z
           .enum(["list", "get", "update", "addNote", "statusChoices"])
@@ -805,7 +872,10 @@ export function registerCompactTools(
             const surveyData = currentSurvey as { answers?: string[] };
             const currentAnswerIds = new Set(surveyData.answers || []);
             const newAnswerIds = new Set(answerIds);
-            const toDeselect = [...currentAnswerIds].filter((id) => !newAnswerIds.has(id));
+            const toDeselect: string[] = [];
+            currentAnswerIds.forEach((id) => {
+              if (!newAnswerIds.has(id)) toDeselect.push(id);
+            });
             if (toDeselect.length > 0) answersToDeselect = toDeselect;
           }
 

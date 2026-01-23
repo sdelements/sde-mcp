@@ -21,7 +21,7 @@ export function registerGenericTools(
     {
       title: "API Request",
       description:
-        "Make a generic API request to a custom endpoint. Use when user says 'make a GET/POST/PUT/DELETE request', 'call API endpoint', or 'custom API call'. Do NOT use for specific operations - use dedicated tools like get_project instead.",
+        "Make a generic API request to a custom endpoint. Use when user says 'make a GET/POST/PUT/DELETE request', 'call API endpoint', or 'custom API call'. Do NOT use for specific operations - use dedicated tools like get_project instead. Client should ask for confirmation before any destructive or data-loss operation (especially DELETE).",
       inputSchema: z.object({
         method: z
           .string()

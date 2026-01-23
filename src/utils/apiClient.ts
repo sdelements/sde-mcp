@@ -994,6 +994,19 @@ export class SDElementsClient {
     return this.get<SDElementsBusinessUnit>(`business-units/${id}/`, params);
   }
 
+  async createBusinessUnit(
+    data: Partial<SDElementsBusinessUnit> & Record<string, unknown>
+  ): Promise<SDElementsBusinessUnit> {
+    return this.post<SDElementsBusinessUnit>("business-units/", data);
+  }
+
+  async updateBusinessUnit(
+    id: number,
+    data: Partial<SDElementsBusinessUnit> & Record<string, unknown>
+  ): Promise<SDElementsBusinessUnit> {
+    return this.patch<SDElementsBusinessUnit>(`business-units/${id}/`, data);
+  }
+
   // --- Users ---
   // Reference: https://docs.sdelements.com/master/api/#users
 
