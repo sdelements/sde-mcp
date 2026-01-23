@@ -133,7 +133,7 @@ npm run build
   - plus **Generic**: `test_connection`, `api_request`
 - **Legacy tools (when `SDE_TOOLSET=full`)**:
   - **Projects**: `list_projects`, `get_project`, `create_project`, `update_project`, `create_project_from_code`
-  - **Library search**: `library_search` (supports countermeasures, threats, components, weaknesses, profiles, risk policies)
+  - **Library search**: `library_search` (supports countermeasures, threats, components, weaknesses, profiles, risk policies, answers)
   - **Applications**: `list_applications`, `get_application`, `create_application`, `update_application`
   - **Business units**: `list_business_units`, `get_business_unit`, `create_business_unit`, `update_business_unit`
   - **Countermeasures**: `list_countermeasures`, `get_countermeasure`, `update_countermeasure`, `add_countermeasure_note`, `get_task_status_choices`

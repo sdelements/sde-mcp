@@ -191,6 +191,8 @@ This document lists all supported prompts for the SD Elements MCP Server, organi
 - Get risk policy 5
 - Show me details for risk policy 3
 - What is risk policy 2?
+- List library answers for programming languages
+- Search library answers for "web application"
 
 ---
 

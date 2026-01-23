@@ -682,11 +682,16 @@ export function registerCompactTools(
     {
       title: "Project Survey",
       description:
-        "Survey operations (get structure, get selected answers, update by IDs, mutate by text, commit draft, add question comment).",
+        "Survey operations (get structure, get selected answers, update by IDs, mutate by text, draft operations, commit draft, add question comment).",
       inputSchema: z.object({
         op: z
           .enum([
             "getProjectSurvey",
+            "getDraft",
+            "resetDraft",
+            "saveDraft",
+            "updateDraftAnswer",
+            "cloneDraftFromProfile",
             "getAnswersForProject",
             "updateByIds",
             "findAnswers",
@@ -696,6 +701,10 @@ export function registerCompactTools(
           ])
           .describe("Operation to perform"),
         project_id: z.number().optional().describe("Project ID"),
+        include: z
+          .string()
+          .optional()
+          .describe("Include filters (e.g. survey,hidden) for draft operations"),
         format: z
           .enum(["summary", "detailed", "grouped"])
           .optional()
@@ -715,6 +724,12 @@ export function registerCompactTools(
           .optional()
           .default(true)
           .describe("When mode=replace, deselect existing answers not in new list"),
+        answer_id: z.string().optional().describe("Survey answer ID"),
+        selected: z.boolean().optional().describe("Select or unselect the answer"),
+        profile_id: z
+          .string()
+          .optional()
+          .describe("Profile ID to clone answers from"),
         question_id: z.string().optional().describe("Survey question ID"),
         comment: z.string().optional().describe("Comment text"),
       }),
@@ -726,6 +741,64 @@ export function registerCompactTools(
             return jsonToolResult({ error: "project_id is required for op=getProjectSurvey" });
           }
           return jsonToolResult(await client.getProjectSurvey(args.project_id));
+
+        case "getDraft":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=getDraft" });
+          }
+          return jsonToolResult(
+            await client.getProjectSurveyDraft(
+              args.project_id,
+              args.include ? { include: args.include } : undefined
+            )
+          );
+
+        case "resetDraft":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=resetDraft" });
+          }
+          return jsonToolResult(await client.resetSurveyDraft(args.project_id));
+
+        case "saveDraft":
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=saveDraft" });
+          }
+          return jsonToolResult(await client.commitSurveyDraft(args.project_id));
+
+        case "updateDraftAnswer":
+          if (args.project_id === undefined) {
+            return jsonToolResult({
+              error: "project_id is required for op=updateDraftAnswer",
+            });
+          }
+          if (!args.answer_id) {
+            return jsonToolResult({ error: "answer_id is required for op=updateDraftAnswer" });
+          }
+          if (args.selected === undefined) {
+            return jsonToolResult({ error: "selected is required for op=updateDraftAnswer" });
+          }
+          return jsonToolResult(
+            await client.updateSurveyDraftAnswer(
+              args.project_id,
+              args.answer_id,
+              args.selected
+            )
+          );
+
+        case "cloneDraftFromProfile":
+          if (args.project_id === undefined) {
+            return jsonToolResult({
+              error: "project_id is required for op=cloneDraftFromProfile",
+            });
+          }
+          if (!args.profile_id) {
+            return jsonToolResult({
+              error: "profile_id is required for op=cloneDraftFromProfile",
+            });
+          }
+          return jsonToolResult(
+            await client.cloneSurveyDraftFromProfile(args.project_id, args.profile_id)
+          );
 
         case "updateByIds": {
           if (args.project_id === undefined) {

@@ -211,7 +211,8 @@ export type SDElementsLibraryType =
   | "weaknesses"
   | "problems"
   | "profiles"
-  | "risk_policies";
+  | "risk_policies"
+  | "answers";
 
 // --- Utility Functions ---
 
@@ -499,15 +500,40 @@ export class SDElementsClient {
   }
 
   async getProjectSurveyDraft(
-    projectId: number
+    projectId: number,
+    params?: SDElementsQueryParams
   ): Promise<SDElementsSurveyDraft> {
     return this.get<SDElementsSurveyDraft>(
-      `projects/${projectId}/survey/draft/`
+      `projects/${projectId}/survey/draft/`,
+      params
     );
   }
 
   async commitSurveyDraft(projectId: number): Promise<unknown> {
     return this.post(`projects/${projectId}/survey/draft/`);
+  }
+
+  async resetSurveyDraft(projectId: number): Promise<unknown> {
+    return this.delete(`projects/${projectId}/survey/draft/`);
+  }
+
+  async updateSurveyDraftAnswer(
+    projectId: number,
+    answerId: string,
+    selected: boolean
+  ): Promise<unknown> {
+    return this.patch(`projects/${projectId}/survey/draft/${answerId}/`, {
+      selected,
+    });
+  }
+
+  async cloneSurveyDraftFromProfile(
+    projectId: number,
+    profileId: string
+  ): Promise<unknown> {
+    return this.patch(`projects/${projectId}/survey/draft/`, {
+      profile: profileId,
+    });
   }
 
   /**
@@ -750,6 +776,9 @@ export class SDElementsClient {
     }
     if (type === "risk_policies") {
       return this.get<SDElementsPaginatedResponse<unknown>>("risk-policies/", params);
+    }
+    if (type === "answers") {
+      return this.get<SDElementsPaginatedResponse<unknown>>("library/answers/", params);
     }
     const endpointType =
       type === "countermeasures" || type === "tasks"

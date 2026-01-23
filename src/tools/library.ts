@@ -10,6 +10,7 @@ const LIBRARY_TYPES = [
   "weaknesses",
   "profiles",
   "risk_policies",
+  "answers",
 ] as const satisfies readonly SDElementsLibraryType[];
 
 function normalizeLibraryType(type: SDElementsLibraryType): SDElementsLibraryType {
@@ -27,14 +28,14 @@ export function registerLibraryTools(
     {
       title: "Library Search",
       description:
-        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, or risk policies. Aliases: tasks=countermeasures, problems=weaknesses.",
+        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, risk policies, or answers. Aliases: tasks=countermeasures, problems=weaknesses.",
       inputSchema: z.object({
         query: z.string().min(1).describe("Search query text"),
         types: z
           .array(z.enum(LIBRARY_TYPES))
           .optional()
           .describe(
-            "Resource types to search (default: countermeasures, threats, components, weaknesses, profiles, risk_policies; aliases: tasks=countermeasures, problems=weaknesses)"
+            "Resource types to search (default: countermeasures, threats, components, weaknesses, profiles, risk_policies, answers; aliases: tasks=countermeasures, problems=weaknesses)"
           ),
         page_size: z.number().optional().describe("Number of results per page"),
         include: z.string().optional().describe("Related resources to include"),
