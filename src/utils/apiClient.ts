@@ -212,7 +212,8 @@ export type SDElementsLibraryType =
   | "problems"
   | "profiles"
   | "risk_policies"
-  | "answers";
+  | "answers"
+  | "task_statuses";
 
 // --- Utility Functions ---
 
@@ -923,10 +924,39 @@ export class SDElementsClient {
     );
   }
 
+  async createTask(
+    projectId: number,
+    data: Partial<SDElementsTask> & {
+      task_id?: string;
+      artifact_proxy?: string;
+      assigned_to?: string[];
+      phase?: string;
+      priority?: number;
+      problem?: string;
+      status?: string;
+      text?: string;
+      title?: string;
+      tags?: string[];
+    }
+  ): Promise<SDElementsTask> {
+    return this.post<SDElementsTask>(`projects/${projectId}/tasks/`, data);
+  }
+
   async updateTask(
     projectId: number,
     taskId: string,
-    data: Partial<SDElementsTask> & { status_note?: string }
+    data: Partial<SDElementsTask> & {
+      status_note?: string;
+      artifact_proxy?: string;
+      assigned_to?: string[];
+      phase?: string;
+      priority?: number;
+      problem?: string;
+      status?: string;
+      text?: string;
+      title?: string;
+      tags?: string[];
+    }
   ): Promise<SDElementsTask> {
     const fullId = taskId.startsWith(`${projectId}`)
       ? taskId
@@ -935,6 +965,13 @@ export class SDElementsClient {
       `projects/${projectId}/tasks/${fullId}/`,
       data
     );
+  }
+
+  async deleteTask(projectId: number, taskId: string): Promise<void> {
+    const fullId = taskId.startsWith(`${projectId}`)
+      ? taskId
+      : `${projectId}-${taskId}`;
+    return this.delete<void>(`projects/${projectId}/tasks/${fullId}/`);
   }
 
   async addTaskNote(

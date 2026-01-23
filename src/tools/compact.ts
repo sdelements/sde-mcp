@@ -576,22 +576,72 @@ export function registerCompactTools(
 
   // ---- countermeasures ----
   server.registerTool(
-    "project_countermeasure",
+    "project_countermeasures",
     {
-      title: "Project Countermeasure",
+      title: "Project Countermeasures",
       description:
-        "Project countermeasure operations (list/get/update/addNote/statusChoices). Alias: task.",
+        "Project countermeasure operations (list/get/create/update/delete/addNote/statusChoices). Alias: task. Note: only manually added library countermeasures and project-specific countermeasures can be deleted.",
       inputSchema: z.object({
         op: z
-          .enum(["list", "get", "update", "addNote", "statusChoices"])
+          .enum([
+            "list",
+            "get",
+            "create",
+            "update",
+            "delete",
+            "addNote",
+            "statusChoices",
+          ])
           .describe("Operation to perform"),
         project_id: z.number().optional().describe("Project ID"),
         countermeasure_id: z.union([z.number(), z.string()]).optional().describe("Countermeasure ID"),
-        status: z.string().optional().describe("New status (name, slug, or ID)"),
-        notes: z.string().optional().describe("Status note"),
+        status: z.string().optional().describe("Status (name, slug, or ID)"),
+        status_note: z.string().optional().describe("Status note"),
+        notes: z.string().optional().describe("Status note (deprecated; use status_note)"),
         note: z.string().optional().describe("Note text to add"),
         page_size: z.number().optional().describe("Number of results per page"),
         risk_relevant: z.boolean().optional().describe("Filter by risk relevance (default true)"),
+        accepted: z.boolean().optional().describe("Filter by accepted state"),
+        relevant: z.boolean().optional().describe("Filter by relevance"),
+        relevant_via_survey: z.boolean().optional().describe("Filter by survey relevance"),
+        assigned_to: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .describe("Assigned user email(s)"),
+        category: z.string().optional().describe("Filter by category name"),
+        library_task_id: z.string().optional().describe("Filter by library countermeasure ID"),
+        phase: z.string().optional().describe("Filter or set phase (phase slug or id)"),
+        priority: z.number().optional().describe("Filter or set priority (0-10)"),
+        regulation: z.string().optional().describe("Filter by regulation ID"),
+        source: z.string().optional().describe("Filter by source (default/custom/manual/project)"),
+        tag: z.string().optional().describe("Filter by tag name"),
+        verification: z
+          .string()
+          .optional()
+          .describe("Filter by verification status (no_dynamic/no_static/pass/partial/fail/none)"),
+        facets: z
+          .enum(["include", "only"])
+          .optional()
+          .describe("Return facets (include) or only facets (only)"),
+        include: z.string().optional().describe("Include fields (e.g. tags, problem)"),
+        expand: z
+          .string()
+          .optional()
+          .describe(
+            "Expand fields (e.g. text,status,phase,problem,updater,tags)"
+          ),
+        artifact_proxy: z
+          .string()
+          .optional()
+          .describe("Issue tracker artifact reference"),
+        problem: z.string().optional().describe("Weakness ID"),
+        text: z.string().optional().describe("Countermeasure description"),
+        title: z.string().optional().describe("Countermeasure title"),
+        task_id: z
+          .string()
+          .optional()
+          .describe("Library countermeasure ID to add to the project (e.g. T21)"),
+        tags: z.array(z.string()).optional().describe("Tags list"),
       }),
     },
     async (args) => {
@@ -605,6 +655,30 @@ export function registerCompactTools(
           };
           if (args.status !== undefined) params.status = args.status;
           if (args.page_size !== undefined) params.page_size = args.page_size;
+          if (args.accepted !== undefined) params.accepted = args.accepted;
+          if (args.relevant !== undefined) params.relevant = args.relevant;
+          if (args.relevant_via_survey !== undefined)
+            params.relevant_via_survey = args.relevant_via_survey;
+          if (args.assigned_to !== undefined) {
+            if (Array.isArray(args.assigned_to)) {
+              return jsonToolResult({
+                error: "assigned_to must be a single email for op=list",
+              });
+            }
+            params.assigned_to = args.assigned_to;
+          }
+          if (args.category !== undefined) params.category = args.category;
+          if (args.library_task_id !== undefined)
+            params.library_task_id = args.library_task_id;
+          if (args.phase !== undefined) params.phase = args.phase;
+          if (args.priority !== undefined) params.priority = args.priority;
+          if (args.regulation !== undefined) params.regulation = args.regulation;
+          if (args.source !== undefined) params.source = args.source;
+          if (args.tag !== undefined) params.tag = args.tag;
+          if (args.verification !== undefined) params.verification = args.verification;
+          if (args.facets !== undefined) params.facets = args.facets;
+          if (args.include !== undefined) params.include = args.include;
+          params.expand = args.expand ?? "status,phase";
           return jsonToolResult(await client.listTasks(args.project_id, params));
         }
         case "get": {
@@ -618,10 +692,46 @@ export function registerCompactTools(
             args.project_id,
             args.countermeasure_id
           );
-          const params = { risk_relevant: args.risk_relevant ?? true };
+          const params: SDElementsQueryParams = {
+            risk_relevant: args.risk_relevant ?? true,
+          };
+          if (args.include !== undefined) params.include = args.include;
+          params.expand = args.expand ?? "status,phase";
           return jsonToolResult(
             await client.getTask(args.project_id, normalizedId, params)
           );
+        }
+        case "create": {
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=create" });
+          }
+          const data: Record<string, unknown> = {};
+          if (args.task_id) {
+            data.task_id = args.task_id;
+          } else {
+            if (!args.phase || args.priority === undefined || !args.text || !args.title) {
+              return jsonToolResult({
+                error:
+                  "For project-specific countermeasures, phase, priority, text, and title are required.",
+              });
+            }
+            data.phase = args.phase;
+            data.priority = args.priority;
+            data.text = args.text;
+            data.title = args.title;
+          }
+          if (args.artifact_proxy !== undefined) data.artifact_proxy = args.artifact_proxy;
+          if (args.assigned_to !== undefined) {
+            data.assigned_to = Array.isArray(args.assigned_to)
+              ? args.assigned_to
+              : [args.assigned_to];
+          }
+          if (args.problem !== undefined) data.problem = args.problem;
+          if (args.status !== undefined) {
+            data.status = await resolveStatusToId(args.status, client);
+          }
+          if (args.tags !== undefined) data.tags = args.tags;
+          return jsonToolResult(await client.createTask(args.project_id, data));
         }
         case "update": {
           if (args.project_id === undefined) {
@@ -638,13 +748,42 @@ export function registerCompactTools(
           if (args.status !== undefined) {
             data.status = await resolveStatusToId(args.status, client);
           }
-          if (args.notes !== undefined) data.status_note = args.notes;
+          if (args.status_note !== undefined) data.status_note = args.status_note;
+          if (args.notes !== undefined && data.status_note === undefined)
+            data.status_note = args.notes;
+          if (args.artifact_proxy !== undefined) data.artifact_proxy = args.artifact_proxy;
+          if (args.assigned_to !== undefined) {
+            data.assigned_to = Array.isArray(args.assigned_to)
+              ? args.assigned_to
+              : [args.assigned_to];
+          }
+          if (args.phase !== undefined) data.phase = args.phase;
+          if (args.priority !== undefined) data.priority = args.priority;
+          if (args.problem !== undefined) data.problem = args.problem;
+          if (args.text !== undefined) data.text = args.text;
+          if (args.title !== undefined) data.title = args.title;
+          if (args.tags !== undefined) data.tags = args.tags;
           if (Object.keys(data).length === 0) {
             return jsonToolResult({
-              error: "No update data provided. Specify either 'status' or 'notes'.",
+              error:
+                "No update data provided. Specify at least one field (status, status_note, artifact_proxy, assigned_users, phase, priority, problem, text, title, tags).",
             });
           }
           return jsonToolResult(await client.updateTask(args.project_id, normalizedId, data));
+        }
+        case "delete": {
+          if (args.project_id === undefined) {
+            return jsonToolResult({ error: "project_id is required for op=delete" });
+          }
+          if (args.countermeasure_id === undefined) {
+            return jsonToolResult({ error: "countermeasure_id is required for op=delete" });
+          }
+          const normalizedId = normalizeCountermeasureId(
+            args.project_id,
+            args.countermeasure_id
+          );
+          await client.deleteTask(args.project_id, normalizedId);
+          return jsonToolResult({ success: true });
         }
         case "addNote": {
           if (args.project_id === undefined) {

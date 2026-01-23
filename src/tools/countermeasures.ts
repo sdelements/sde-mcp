@@ -145,7 +145,7 @@ export function registerCountermeasureTools(
     {
       title: "List Countermeasures",
       description:
-        "List all countermeasures for a project. Use this to see countermeasures associated with a project, not get_project which returns project details.",
+        "List all countermeasures for a project. Only returns relevant countermeasures and omits text to reduce payload size. Use this to see countermeasures associated with a project, not get_project which returns project details.",
       inputSchema: z.object({
         project_id: z.number().describe("ID of the project"),
         status: z.string().optional().describe("Filter by status"),
@@ -181,7 +181,7 @@ export function registerCountermeasureTools(
     {
       title: "Get Countermeasure",
       description:
-        'Get details of a SPECIFIC countermeasure by its ID. Use this when the user asks about a particular countermeasure (e.g., "countermeasure 123", "T21", "countermeasure 456"). Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21"). Filter by risk relevance - if true, only return risk-relevant countermeasures. Defaults to true. Do NOT use this tool when the user asks about available status choices or what statuses are valid - use get_task_status_choices instead.',
+        'Get details of a SPECIFIC countermeasure by its ID. Only returns relevant countermeasures and omits text to reduce payload size. Use this when the user asks about a particular countermeasure (e.g., "countermeasure 123", "T21", "countermeasure 456"). Accepts countermeasure ID as integer (e.g., 21) or string (e.g., "T21" or "31244-T21"). Filter by risk relevance - if true, only return risk-relevant countermeasures. Defaults to true. Do NOT use this tool when the user asks about available status choices or what statuses are valid - use get_task_status_choices instead.',
       inputSchema: z.object({
         project_id: z.number().describe("ID of the project"),
         countermeasure_id: z
@@ -199,7 +199,9 @@ export function registerCountermeasureTools(
         project_id,
         countermeasure_id
       );
-      const params = { risk_relevant };
+      const params = {
+        risk_relevant,
+      };
 
       const result = await client.getTask(project_id, normalizedId, params);
 

@@ -106,7 +106,7 @@ const EXPECTED_TOOL_NAMES_COMPACT = [
   "application",
   "business_unit",
   "project_survey",
-  "project_countermeasure",
+  "project_countermeasures",
   "library_search",
   // generic
   "api_request",
@@ -339,7 +339,7 @@ describe("tools (coverage)", () => {
       application: { op: "list" },
       business_unit: { op: "list" },
       project_survey: { op: "getProjectSurvey", project_id: 1 },
-      project_countermeasure: { op: "statusChoices" },
+      project_countermeasures: { op: "statusChoices" },
       library_search: { query: "auth" },
       api_request: { method: "GET", endpoint: "users/me/" },
       test_connection: {},
