@@ -213,7 +213,8 @@ export type SDElementsLibraryType =
   | "profiles"
   | "risk_policies"
   | "answers"
-  | "task_statuses";
+  | "task_statuses"
+  | "implementations";
 
 // --- Utility Functions ---
 
@@ -812,6 +813,27 @@ export class SDElementsClient {
           : type;
     return this.get<SDElementsPaginatedResponse<unknown>>(
       `library/${endpointType}/`,
+      params
+    );
+  }
+
+  async listLibraryTaskImplementations(
+    taskId: string,
+    params?: SDElementsQueryParams
+  ): Promise<SDElementsPaginatedResponse<unknown>> {
+    return this.get<SDElementsPaginatedResponse<unknown>>(
+      `library/tasks/${taskId}/implementations/`,
+      params
+    );
+  }
+
+  async getLibraryTaskImplementation(
+    taskId: string,
+    implementationId: string,
+    params?: SDElementsQueryParams
+  ): Promise<unknown> {
+    return this.get(
+      `library/tasks/${taskId}/implementations/${implementationId}/`,
       params
     );
   }

@@ -19,9 +19,7 @@ function hasArgFlag(flag: string): boolean {
   return process.argv.includes(flag);
 }
 
-const useHttp = hasArgFlag("--http") || hasNpmConfigFlag("http");
-
-(useHttp ? mainHttp : mainStdio)().catch((err: unknown) => {
+const useHttp = hasArgFlag("--http") || hasNpmConfigFlag("http");(useHttp ? mainHttp : mainStdio)().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });

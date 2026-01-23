@@ -12,6 +12,7 @@ const LIBRARY_TYPES = [
   "risk_policies",
   "answers",
   "task_statuses",
+  "implementations",
 ] as const satisfies readonly SDElementsLibraryType[];
 
 function normalizeLibraryType(type: SDElementsLibraryType): SDElementsLibraryType {
@@ -29,14 +30,14 @@ export function registerLibraryTools(
     {
       title: "Library Search",
       description:
-        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, risk policies, answers, or countermeasure statuses. Aliases: tasks=countermeasures, problems=weaknesses.",
+        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, risk policies, answers, countermeasure statuses, or countermeasure how-tos (implementations). Aliases: tasks=countermeasures, problems=weaknesses, implementations=how-tos.",
       inputSchema: z.object({
         query: z.string().min(1).describe("Search query text"),
         types: z
           .array(z.enum(LIBRARY_TYPES))
           .optional()
           .describe(
-            "Resource types to search (default: countermeasures, threats, components, weaknesses, profiles, risk_policies, answers, task_statuses; aliases: tasks=countermeasures, problems=weaknesses)"
+            "Resource types to search (default: countermeasures, threats, components, weaknesses, profiles, risk_policies, answers, task_statuses, implementations; aliases: tasks=countermeasures, problems=weaknesses)"
           ),
         page_size: z.number().optional().describe("Number of results per page"),
         include: z.string().optional().describe("Related resources to include"),
@@ -46,6 +47,22 @@ export function registerLibraryTools(
           .string()
           .optional()
           .describe("Sort field (e.g. name, created; prefix with - for desc)"),
+        task_id: z
+          .string()
+          .optional()
+          .describe("Library countermeasure ID (for implementations)"),
+        implementation_id: z
+          .string()
+          .optional()
+          .describe("Implementation ID (for a specific how-to)"),
+        active: z
+          .boolean()
+          .optional()
+          .describe("Filter by active status (implementations)"),
+        show_original: z
+          .boolean()
+          .optional()
+          .describe("Return original content for built-in modified how-tos"),
         filters: z
           .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
           .optional()
@@ -62,6 +79,8 @@ export function registerLibraryTools(
         expand: args.expand,
         ordering: args.ordering,
         search: args.query,
+        active: args.active,
+        show_original: args.show_original,
         ...(args.filters || {}),
       });
       const query = args.query.trim();
@@ -93,6 +112,32 @@ export function registerLibraryTools(
             }
             if (type === "task_statuses") {
               const data = await client.listTaskStatuses(params);
+              return [type, data] as const;
+            }
+            if (type === "implementations") {
+              if (!args.task_id) {
+                return [type, { error: "task_id is required for implementations" }] as const;
+              }
+              const implParams = buildParams({
+                page_size: args.page_size,
+                include: args.include,
+                ordering: args.ordering,
+                active: args.active,
+                show_original: args.show_original,
+                ...(args.filters || {}),
+              });
+              if (args.implementation_id) {
+                const data = await client.getLibraryTaskImplementation(
+                  args.task_id,
+                  args.implementation_id,
+                  implParams
+                );
+                return [type, data] as const;
+              }
+              const data = await client.listLibraryTaskImplementations(
+                args.task_id,
+                implParams
+              );
               return [type, data] as const;
             }
             const data = await client.listLibraryItems(type, params);
