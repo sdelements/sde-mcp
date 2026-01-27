@@ -51,8 +51,8 @@ describe("tools/index registerAll", () => {
     expect(names).toContain("project");
     expect(names).toContain("application");
     expect(names).toContain("business_unit");
-    expect(names).toContain("countermeasure");
-    expect(names).toContain("survey");
+    expect(names).toContain("project_countermeasures");
+    expect(names).toContain("project_survey");
     expect(names).toContain("api_request");
   });
 
