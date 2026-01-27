@@ -30,7 +30,7 @@ export function registerLibraryTools(
     {
       title: "Library Search",
       description:
-        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, risk policies, answers, countermeasure statuses, or countermeasure how-tos (implementations). Aliases: tasks=countermeasures, problems=weaknesses, implementations=how-tos.",
+        "Search the SD Elements library for countermeasures, threats, components, weaknesses, profiles, risk policies, answers, countermeasure statuses, or countermeasure how-tos (implementations). Aliases: tasks=countermeasures, problems=weaknesses, implementations=how-tos. Priority scale: 1 is lowest, 10 is highest.",
       inputSchema: z.object({
         query: z.string().min(1).describe("Search query text"),
         types: z
@@ -66,7 +66,9 @@ export function registerLibraryTools(
         filters: z
           .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
           .optional()
-          .describe("Additional filter params (e.g. name__icontains)"),
+          .describe(
+            "Additional filter params (e.g. name__icontains, priority=1..10 where 1 lowest, 10 highest)"
+          ),
       }),
     },
     async (args) => {

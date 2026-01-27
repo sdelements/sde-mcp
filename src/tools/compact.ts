@@ -580,7 +580,7 @@ export function registerCompactTools(
     {
       title: "Project Countermeasures",
       description:
-        "Project countermeasure operations (list/get/create/update/delete/addNote/statusChoices). Alias: task. Note: only manually added library countermeasures and project-specific countermeasures can be deleted.",
+        "Project countermeasure operations (list/get/create/update/delete/addNote/statusChoices). Alias: task. Note: only manually added library countermeasures and project-specific countermeasures can be deleted. Priority scale: 1 is lowest, 10 is highest.",
       inputSchema: z.object({
         op: z
           .enum([
@@ -611,7 +611,10 @@ export function registerCompactTools(
         category: z.string().optional().describe("Filter by category name"),
         library_task_id: z.string().optional().describe("Filter by library countermeasure ID"),
         phase: z.string().optional().describe("Filter or set phase (phase slug or id)"),
-        priority: z.number().optional().describe("Filter or set priority (0-10)"),
+        priority: z
+          .number()
+          .optional()
+          .describe("Filter or set priority (1-10; 1 lowest, 10 highest)"),
         regulation: z.string().optional().describe("Filter by regulation ID"),
         source: z.string().optional().describe("Filter by source (default/custom/manual/project)"),
         tag: z.string().optional().describe("Filter by tag name"),

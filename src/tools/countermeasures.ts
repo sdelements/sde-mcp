@@ -145,11 +145,15 @@ export function registerCountermeasureTools(
     {
       title: "List Countermeasures",
       description:
-        "List all countermeasures for a project. Only returns relevant countermeasures and omits text to reduce payload size. Use this to see countermeasures associated with a project, not get_project which returns project details.",
+        "List all countermeasures for a project. Only returns relevant countermeasures and omits text to reduce payload size. Use this to see countermeasures associated with a project, not get_project which returns project details. Priority scale: 1 is lowest, 10 is highest.",
       inputSchema: z.object({
         project_id: z.number().describe("ID of the project"),
         status: z.string().optional().describe("Filter by status"),
         page_size: z.number().optional().describe("Number of results per page"),
+        priority: z
+          .number()
+          .optional()
+          .describe("Filter by priority (1-10; 1 lowest, 10 highest)"),
         risk_relevant: z
           .boolean()
           .optional()
@@ -157,7 +161,7 @@ export function registerCountermeasureTools(
           .describe("Filter by risk relevance"),
       }),
     },
-    async ({ project_id, status, page_size, risk_relevant = true }) => {
+    async ({ project_id, status, page_size, priority, risk_relevant = true }) => {
       const params: SDElementsQueryParams = {
         risk_relevant,
       };
@@ -167,6 +171,9 @@ export function registerCountermeasureTools(
       }
       if (page_size !== undefined) {
         params.page_size = page_size;
+      }
+      if (priority !== undefined) {
+        params.priority = priority;
       }
 
       const result = await client.listTasks(project_id, params);
@@ -215,7 +222,7 @@ export function registerCountermeasureTools(
     {
       title: "Update Countermeasure",
       description:
-        "Update a countermeasure (status or notes). Use when user says 'update status', 'mark as complete', or 'change status'. Do NOT use for 'add note', 'document', or 'note' - use add_countermeasure_note instead. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., \"T21\" or \"31244-T21\").\n\nStatus can be provided as name (e.g., 'Complete', 'Not Applicable'), slug (e.g., 'DONE', 'NA'), or ID (e.g., 'TS1'). The tool will automatically resolve names/slugs to the correct status ID required by the API.\n\nIMPORTANT: The 'notes' parameter sets a status_note, which is only saved when the status actually changes. If the countermeasure already has the target status, use add_countermeasure_note instead to add a note, or change the status to a different value first, then back to the target status to trigger saving the status_note.",
+        "Update a countermeasure (status, notes, or priority). Use when user says 'update status', 'mark as complete', or 'change status'. Do NOT use for 'add note', 'document', or 'note' - use add_countermeasure_note instead. Accepts countermeasure ID as integer (e.g., 21) or string (e.g., \"T21\" or \"31244-T21\"). Priority scale: 1 is lowest, 10 is highest.\n\nStatus can be provided as name (e.g., 'Complete', 'Not Applicable'), slug (e.g., 'DONE', 'NA'), or ID (e.g., 'TS1'). The tool will automatically resolve names/slugs to the correct status ID required by the API.\n\nIMPORTANT: The 'notes' parameter sets a status_note, which is only saved when the status actually changes. If the countermeasure already has the target status, use add_countermeasure_note instead to add a note, or change the status to a different value first, then back to the target status to trigger saving the status_note.",
       inputSchema: z.object({
         project_id: z.number().describe("ID of the project"),
         countermeasure_id: z
@@ -229,9 +236,13 @@ export function registerCountermeasureTools(
           .string()
           .optional()
           .describe("Status note (only saved when status changes)"),
+        priority: z
+          .number()
+          .optional()
+          .describe("New priority (1-10; 1 lowest, 10 highest)"),
       }),
     },
-    async ({ project_id, countermeasure_id, status, notes }) => {
+    async ({ project_id, countermeasure_id, status, notes, priority }) => {
       const normalizedId = normalizeCountermeasureId(
         project_id,
         countermeasure_id
@@ -289,10 +300,13 @@ export function registerCountermeasureTools(
       if (notes !== undefined) {
         data.status_note = notes;
       }
+      if (priority !== undefined) {
+        data.priority = priority;
+      }
 
       if (Object.keys(data).length === 0) {
         return jsonToolResult({
-          error: "No update data provided. Specify either 'status' or 'notes'.",
+          error: "No update data provided. Specify 'status', 'notes', or 'priority'.",
         });
       }
 
