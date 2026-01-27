@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createServer, setupSignalHandlers } from "./mcp";
+import { checkNodeVersion } from "./utils/version";
 
 type SessionEntry = {
   transport: StreamableHTTPServerTransport;
@@ -176,6 +177,7 @@ function readEnvPort(value: string | undefined, fallback: number): number {
 }
 
 export async function main(): Promise<void> {
+  checkNodeVersion();
   assertNoSdeEnvForHttpMode();
   const whitelist = readWhitelist();
 
